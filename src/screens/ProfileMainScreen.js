@@ -1,17 +1,69 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Image,
+  ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Toast from 'react-native-toast-message';
 import { Theme } from '../assets/themes';
+import authService from '../services/authService';
+import { getInitials, getAvatarColor } from '../utils/avatarUtils';
 
 const ProfileMainScreen = ({ navigation }) => {
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadProfile();
+    }, [])
+  );
+
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await authService.getProfile();
+      setUserData(response.data?.user);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message || 'Failed to load profile',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Logged out successfully',
+      });
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (error) {
+      console.error('Error logging out:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to logout',
+      });
+    }
+  };
+
   const menuItems = [
     {
       id: 'personal',
@@ -36,6 +88,24 @@ const ProfileMainScreen = ({ navigation }) => {
     },
   ];
 
+  if (loading) {
+    return (
+      <LinearGradient
+        colors={[Theme.Colors.neutral.white, Theme.Colors.background.light]}
+        start={{ x: 0, y: 1 }}
+        end={{ x: 0, y: 0 }}
+        style={styles.container}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Theme.Colors.primary.main} />
+        </View>
+      </LinearGradient>
+    );
+  }
+
+  const initials = getInitials(userData?.name);
+  const avatarColor = getAvatarColor(userData?.name);
+
   return (
     <LinearGradient
       colors={[Theme.Colors.neutral.white, Theme.Colors.background.light]}
@@ -50,24 +120,21 @@ const ProfileMainScreen = ({ navigation }) => {
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Icon
-                name="person"
-                size={48}
-                color={Theme.Colors.neutral.white}
-              />
+            <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+              <Text style={styles.avatarText}>{initials}</Text>
             </View>
-            <TouchableOpacity style={styles.editAvatarButton}>
+            {/* Change Photo - Coming Soon */}
+            {/* <TouchableOpacity style={styles.editAvatarButton}>
               <Icon
                 name="camera"
                 size={16}
                 color={Theme.Colors.neutral.white}
               />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
-          <Text style={styles.userName}>Advik Kumar</Text>
-          <Text style={styles.userEmail}>advik.kumar@email.com</Text>
-          <Text style={styles.userPhone}>+91 98765 43210</Text>
+          <Text style={styles.userName}>{userData?.name || 'User'}</Text>
+          <Text style={styles.userEmail}>{userData?.email || 'Not set'}</Text>
+          <Text style={styles.userPhone}>{userData?.phone || ''}</Text>
         </View>
 
         {/* Menu Items */}
@@ -105,7 +172,7 @@ const ProfileMainScreen = ({ navigation }) => {
         </View>
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Icon name="log-out-outline" size={20} color="#EF4444" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
@@ -120,6 +187,11 @@ const ProfileMainScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollView: {
     flex: 1,
@@ -137,7 +209,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: Theme.Colors.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 4,
@@ -147,6 +218,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+  },
+  avatarText: {
+    fontSize: 40,
+    fontWeight: Theme.Typography.fontWeight.bold,
+    color: Theme.Colors.neutral.white,
+    fontFamily: Theme.Typography.fontFamily.bold,
   },
   editAvatarButton: {
     position: 'absolute',

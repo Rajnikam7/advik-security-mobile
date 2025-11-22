@@ -8,16 +8,76 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
 import { Theme } from '../assets/themes';
+import authService from '../services/authService';
+import { validatePhone } from '../utils/validation';
+
+const TEST_PHONE = '9999999999'; // Test phone number
+const TEST_OTP = '999999'; // Test OTP
 
 const LoginScreen = ({ navigation }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSendOTP = () => {
-    if (phoneNumber.length === 10) {
-      navigation.navigate('OTPVerification', { phoneNumber });
+  const handleSendOTP = async () => {
+    setError('');
+    
+    const trimmedNumber = phoneNumber.trim();
+    
+    // Validate phone number
+    const validation = validatePhone(trimmedNumber);
+    if (!validation.isValid) {
+      setError(validation.message);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Check if test number
+      if (trimmedNumber === TEST_PHONE) {
+        // Test mode - navigate to OTP screen
+        Toast.show({
+          type: 'info',
+          text1: 'Test Mode',
+          text2: `Use OTP: ${TEST_OTP}`,
+        });
+        navigation.navigate('OTPVerification', { 
+          phoneNumber: trimmedNumber,
+          testMode: true,
+        });
+      } else {
+        // Firebase mode - send OTP
+        const confirmation = await authService.sendOTP(trimmedNumber);
+        
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'OTP sent successfully',
+        });
+        
+        navigation.navigate('OTPVerification', { 
+          phoneNumber: trimmedNumber,
+          confirmation,
+          testMode: false,
+        });
+      }
+    } catch (err) {
+      console.log('Send OTP error:', err);
+      const errorMessage = err.message || 'Failed to send OTP. Please try again.';
+      setError(errorMessage);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: errorMessage,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -53,7 +113,7 @@ const LoginScreen = ({ navigation }) => {
             <View style={styles.phoneInputContainer}>
               <TouchableOpacity style={styles.countryCodeButton}>
                 <Text style={styles.countryCodeText}>+91</Text>
-                <Text style={styles.dropdownIcon}>▼</Text>
+                {/* <Text style={styles.dropdownIcon}>▼</Text> */}
               </TouchableOpacity>
               <TextInput
                 style={styles.phoneInput}
@@ -62,30 +122,45 @@ const LoginScreen = ({ navigation }) => {
                 keyboardType="phone-pad"
                 maxLength={10}
                 value={phoneNumber}
-                onChangeText={setPhoneNumber}
+                onChangeText={text => {
+                  setPhoneNumber(text);
+                  setError('');
+                }}
+                editable={!loading}
               />
             </View>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          </View>
+
+          <View style={styles.testModeContainer}>
+            <Text style={styles.testModeText}>
+              Test Mode: Use {TEST_PHONE} / OTP: {TEST_OTP}
+            </Text>
           </View>
 
           <TouchableOpacity
             style={[
               styles.sendButton,
-              phoneNumber.length !== 10 && styles.sendButtonDisabled,
+              (phoneNumber.length !== 10 || loading) && styles.sendButtonDisabled,
             ]}
             onPress={handleSendOTP}
-            disabled={phoneNumber.length !== 10}
+            disabled={phoneNumber.length !== 10 || loading}
             activeOpacity={0.8}
           >
-            <Text style={styles.sendButtonText}>Send OTP</Text>
+            {loading ? (
+              <ActivityIndicator color={Theme.Colors.neutral.white} />
+            ) : (
+              <Text style={styles.sendButtonText}>Send OTP</Text>
+            )}
           </TouchableOpacity>
 
           {/* Register Link */}
-          <View style={styles.registerContainer}>
+          {/* <View style={styles.registerContainer}>
             <Text style={styles.registerText}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
               <Text style={styles.registerLink}>Sign Up</Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
 
           <View style={styles.supportContainer}>
             <Text style={styles.supportText}>Having trouble? </Text>
@@ -233,6 +308,26 @@ const styles = StyleSheet.create({
     color: Theme.Colors.primary.main,
     fontWeight: Theme.Typography.fontWeight.semibold,
     fontFamily: Theme.Typography.fontFamily.semibold,
+  },
+  errorText: {
+    fontSize: Theme.Typography.fontSize.xs + 1,
+    color: Theme.Colors.error.main,
+    marginTop: Theme.Spacing.xs,
+    fontFamily: Theme.Typography.fontFamily.regular,
+  },
+  testModeContainer: {
+    backgroundColor: Theme.Colors.warning.lightest,
+    padding: Theme.Spacing.sm,
+    borderRadius: 8,
+    marginBottom: Theme.Spacing.md,
+    borderWidth: 1,
+    borderColor: Theme.Colors.warning.light,
+  },
+  testModeText: {
+    fontSize: Theme.Typography.fontSize.xs + 1,
+    color: Theme.Colors.warning.dark,
+    textAlign: 'center',
+    fontFamily: Theme.Typography.fontFamily.medium,
   },
 });
 

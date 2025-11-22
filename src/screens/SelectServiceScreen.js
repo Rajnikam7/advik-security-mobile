@@ -1,57 +1,62 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Toast from 'react-native-toast-message';
 import { Theme } from '../assets/themes';
+import serviceTypeService from '../services/serviceTypeService';
+import { mapIconToIonicon, getServiceIcon } from '../utils/iconMapper';
 
 const SelectServiceScreen = ({ navigation }) => {
-  const services = [
-    {
-      id: 'cctv',
-      name: 'CCTV',
-      description: 'Surveillance and recording issues.',
-      icon: 'videocam-outline',
-    },
-    {
-      id: 'gps',
-      name: 'GPS',
-      description: 'Vehicle or asset tracking problems.',
-      icon: 'navigate-outline',
-    },
-    {
-      id: 'intercom',
-      name: 'Intercom',
-      description: 'Communication and access control.',
-      icon: 'mic-outline',
-    },
-    {
-      id: 'hotel',
-      name: 'Hotel',
-      description: 'Security services for hotel properties.',
-      icon: 'bed-outline',
-    },
-    {
-      id: 'penthouse',
-      name: 'Penthouse',
-      description: 'Residential high-security services.',
-      icon: 'business-outline',
-    },
-    {
-      id: 'farm',
-      name: 'Farm',
-      description: 'Rural property and asset security.',
-      icon: 'leaf-outline',
-    },
-  ];
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadServices();
+  }, []);
+
+  const loadServices = async () => {
+    try {
+      setLoading(true);
+      const response = await serviceTypeService.getServiceTypes();
+      
+      // Filter only active services and map to the format we need
+      const activeServices = response.data
+        .filter(service => service.isActive && !service.isDeleted)
+        .map(service => ({
+          id: service._id,
+          name: service.serviceName,
+          description: service.description,
+          icon: mapIconToIonicon(service.icon) || getServiceIcon(service.serviceName),
+          servicePriorities: service.servicePriorities,
+        }));
+      
+      setServices(activeServices);
+    } catch (error) {
+      console.error('Error loading services:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message || 'Failed to load services',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleServiceSelect = service => {
-    navigation.navigate('FileComplaint', { serviceType: service.name });
+    navigation.navigate('FileComplaint', { 
+      serviceType: service.name,
+      serviceId: service.id,
+      servicePriorities: service.servicePriorities,
+    });
   };
 
   return (
@@ -77,42 +82,63 @@ const SelectServiceScreen = ({ navigation }) => {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Title Section */}
-        <View style={styles.titleSection}>
-          <Text style={styles.title}>Select a Service</Text>
-          <Text style={styles.subtitle}>
-            Which service is this complaint about?
-          </Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Theme.Colors.primary.main} />
+          <Text style={styles.loadingText}>Loading services...</Text>
         </View>
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Title Section */}
+          <View style={styles.titleSection}>
+            <Text style={styles.title}>Select a Service</Text>
+            <Text style={styles.subtitle}>
+              Which service is this complaint about?
+            </Text>
+          </View>
 
-        {/* Service Grid */}
-        <View style={styles.serviceGrid}>
-          {services.map((service, index) => (
-            <TouchableOpacity
-              key={service.id}
-              style={styles.serviceCard}
-              onPress={() => handleServiceSelect(service)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.serviceIconContainer}>
-                <Icon
-                  name={service.icon}
-                  size={32}
-                  color={Theme.Colors.primary.main}
-                />
-              </View>
-              <Text style={styles.serviceName}>{service.name}</Text>
-              <Text style={styles.serviceDescription}>
-                {service.description}
+          {/* Service Grid */}
+          {services.length > 0 ? (
+            <View style={styles.serviceGrid}>
+              {services.map((service) => (
+                <TouchableOpacity
+                  key={service.id}
+                  style={styles.serviceCard}
+                  onPress={() => handleServiceSelect(service)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.serviceIconContainer}>
+                    <Icon
+                      name={service.icon}
+                      size={32}
+                      color={Theme.Colors.primary.main}
+                    />
+                  </View>
+                  <Text style={styles.serviceName}>{service.name}</Text>
+                  <Text style={styles.serviceDescription}>
+                    {service.description}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Icon
+                name="alert-circle-outline"
+                size={64}
+                color={Theme.Colors.neutral.gray400}
+              />
+              <Text style={styles.emptyText}>No services available</Text>
+              <Text style={styles.emptySubtext}>
+                Please contact support for assistance
               </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+            </View>
+          )}
+        </ScrollView>
+      )}
     </LinearGradient>
   );
 };
@@ -120,6 +146,36 @@ const SelectServiceScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: Theme.Spacing.md,
+    fontSize: Theme.Typography.fontSize.md,
+    color: Theme.Colors.neutral.gray600,
+    fontFamily: Theme.Typography.fontFamily.regular,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Theme.Spacing.xl * 2,
+  },
+  emptyText: {
+    fontSize: Theme.Typography.fontSize.lg,
+    fontWeight: Theme.Typography.fontWeight.semibold,
+    color: Theme.Colors.neutral.gray700,
+    marginTop: Theme.Spacing.md,
+    fontFamily: Theme.Typography.fontFamily.semibold,
+  },
+  emptySubtext: {
+    fontSize: Theme.Typography.fontSize.sm,
+    color: Theme.Colors.neutral.gray500,
+    marginTop: Theme.Spacing.xs,
+    fontFamily: Theme.Typography.fontFamily.regular,
   },
   header: {
     flexDirection: 'row',

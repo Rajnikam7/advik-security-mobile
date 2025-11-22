@@ -1,15 +1,56 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
+import { useDispatch } from 'react-redux';
 import { Theme } from '../assets/themes';
+import authService from '../services/authService';
+import { setAuth } from '../store/slices/authSlice';
 
 const FlashScreen = ({ navigation }) => {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      navigation.replace('Login');
-    }, 3000);
+  const dispatch = useDispatch();
+  const [isChecking, setIsChecking] = useState(true);
 
-    return () => clearTimeout(timer);
-  }, [navigation]);
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      // Minimum splash screen time
+      const minSplashTime = new Promise(resolve => setTimeout(resolve, 2500));
+      
+      // Check authentication
+      const authCheck = authService.checkAuth();
+      
+      // Wait for both to complete
+      const [_, authResult] = await Promise.all([minSplashTime, authCheck]);
+      
+      console.log('Auth check result:', authResult);
+
+      if (authResult.isAuthenticated) {
+        // User is authenticated, update Redux
+        dispatch(setAuth({
+          user: authResult.user,
+          token: 'stored_in_keychain', // Token is in secure storage
+        }));
+
+        // Navigate based on profile completion
+        if (authResult.isProfileComplete) {
+          navigation.replace('Main');
+        } else {
+          navigation.replace('Register');
+        }
+      } else {
+        // Not authenticated, go to login
+        navigation.replace('Login');
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+      // On error, go to login
+      navigation.replace('Login');
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -33,6 +74,13 @@ const FlashScreen = ({ navigation }) => {
         </View>
 
         <Text style={styles.subtitle}>Protecting What Matters Most</Text>
+
+        {isChecking && (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color={Theme.Colors.primary.main} />
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -152,6 +200,17 @@ const styles = StyleSheet.create({
     marginTop: Theme.Spacing.lg + 11,
     fontWeight: Theme.Typography.fontWeight.medium,
     letterSpacing: Theme.Typography.letterSpacing.wide,
+    fontFamily: Theme.Typography.fontFamily.medium,
+  },
+
+  loaderContainer: {
+    marginTop: Theme.Spacing.xxl + 10,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: Theme.Spacing.md,
+    fontSize: Theme.Typography.fontSize.sm,
+    color: Theme.Colors.text.secondary,
     fontFamily: Theme.Typography.fontFamily.medium,
   },
 });

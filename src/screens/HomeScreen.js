@@ -1,12 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Theme } from '../assets/themes';
 import HomeHeader from '../components/HomeHeader';
 import ActionCard from '../components/ActionCard';
 import HelpCard from '../components/HelpCard';
+import secureStorage from '../utils/secureStorage';
 
 const HomeScreen = ({ navigation }) => {
+  const [userName, setUserName] = useState('User');
+
+  const loadUserData = async () => {
+    try {
+      const userData = await secureStorage.getUserData();
+      if (userData && userData.name) {
+        setUserName(userData.name);
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  // Load user data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserData();
+    }, [])
+  );
+
   const handleNotificationPress = () => {
     console.log('Notification pressed');
   };
@@ -60,7 +82,7 @@ const HomeScreen = ({ navigation }) => {
       style={styles.container}
     >
       <HomeHeader
-        userName="Advik"
+        userName={userName}
         onNotificationPress={handleNotificationPress}
       />
 

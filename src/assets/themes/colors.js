@@ -61,6 +61,36 @@ const Colors = {
     info: '#2196f3',
   },
 
+  // Error Colors
+  error: {
+    main: '#f44336',
+    light: '#e57373',
+    lighter: '#ef9a9a',
+    lightest: '#ffcdd2',
+    dark: '#d32f2f',
+    darker: '#c62828',
+  },
+
+  // Warning Colors
+  warning: {
+    main: '#ff9800',
+    light: '#ffb74d',
+    lighter: '#ffcc80',
+    lightest: '#ffe0b2',
+    dark: '#f57c00',
+    darker: '#e65100',
+  },
+
+  // Success Colors
+  success: {
+    main: '#4caf50',
+    light: '#81c784',
+    lighter: '#a5d6a7',
+    lightest: '#c8e6c9',
+    dark: '#388e3c',
+    darker: '#2e7d32',
+  },
+
   // Shadow Colors
   shadow: {
     light: 'rgba(0, 128, 128, 0.15)',

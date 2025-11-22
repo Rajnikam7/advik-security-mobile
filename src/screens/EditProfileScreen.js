@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,21 +6,114 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Toast from 'react-native-toast-message';
 import { Theme } from '../assets/themes';
+import authService from '../services/authService';
+import { getInitials, getAvatarColor } from '../utils/avatarUtils';
 
 const EditProfileScreen = ({ navigation }) => {
-  const [fullName, setFullName] = useState('Advik Kumar');
-  const [email, setEmail] = useState('advik.kumar@email.com');
-  const [phone, setPhone] = useState('+91 98765 43210');
-  const [address, setAddress] = useState('123, Cyberpark, Kozhikode');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    console.log('Save profile');
-    navigation.goBack();
+  useFocusEffect(
+    React.useCallback(() => {
+      loadProfile();
+    }, [])
+  );
+
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await authService.getProfile();
+      const user = response.data?.user;
+      
+      if (user) {
+        setFullName(user.name || '');
+        setEmail(user.email || '');
+        setPhone(user.phone || '');
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message || 'Failed to load profile',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleSave = async () => {
+    if (!fullName.trim()) {
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Name is required',
+      });
+      return;
+    }
+
+    if (!email.trim()) {
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Email is required',
+      });
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await authService.updateProfile({
+        name: fullName.trim(),
+        email: email.trim(),
+      });
+
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Profile updated successfully',
+      });
+
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message || 'Failed to update profile',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const initials = getInitials(fullName);
+  const avatarColor = getAvatarColor(fullName);
+
+  if (loading) {
+    return (
+      <LinearGradient
+        colors={[Theme.Colors.neutral.white, Theme.Colors.background.light]}
+        start={{ x: 0, y: 1 }}
+        end={{ x: 0, y: 0 }}
+        style={styles.container}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Theme.Colors.primary.main} />
+        </View>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient
@@ -51,12 +144,13 @@ const EditProfileScreen = ({ navigation }) => {
       >
         {/* Avatar Section */}
         <View style={styles.avatarSection}>
-          <View style={styles.avatar}>
-            <Icon name="person" size={48} color={Theme.Colors.neutral.white} />
+          <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+            <Text style={styles.avatarText}>{initials}</Text>
           </View>
-          <TouchableOpacity style={styles.changePhotoButton}>
+          {/* Change Photo - Coming Soon */}
+          {/* <TouchableOpacity style={styles.changePhotoButton}>
             <Text style={styles.changePhotoText}>Change Photo</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {/* Form Fields */}
@@ -100,7 +194,7 @@ const EditProfileScreen = ({ navigation }) => {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Phone Number</Text>
-            <View style={styles.inputWrapper}>
+            <View style={[styles.inputWrapper, styles.disabledInput]}>
               <Icon
                 name="call-outline"
                 size={20}
@@ -109,40 +203,26 @@ const EditProfileScreen = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 value={phone}
-                onChangeText={setPhone}
-                placeholder="Enter your phone"
+                placeholder="Phone number"
                 placeholderTextColor={Theme.Colors.neutral.gray400}
-                keyboardType="phone-pad"
+                editable={false}
               />
             </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Address</Text>
-            <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
-              <Icon
-                name="location-outline"
-                size={20}
-                color={Theme.Colors.neutral.gray400}
-                style={styles.textAreaIcon}
-              />
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={address}
-                onChangeText={setAddress}
-                placeholder="Enter your address"
-                placeholderTextColor={Theme.Colors.neutral.gray400}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-              />
-            </View>
+            <Text style={styles.helperText}>Phone number cannot be changed</Text>
           </View>
         </View>
 
         {/* Save Button */}
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save Changes</Text>
+        <TouchableOpacity 
+          style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
+          onPress={handleSave}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color={Theme.Colors.neutral.white} />
+          ) : (
+            <Text style={styles.saveButtonText}>Save Changes</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </LinearGradient>
@@ -152,6 +232,11 @@ const EditProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -188,10 +273,15 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: Theme.Colors.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Theme.Spacing.md,
+  },
+  avatarText: {
+    fontSize: 40,
+    fontWeight: Theme.Typography.fontWeight.bold,
+    color: Theme.Colors.neutral.white,
+    fontFamily: Theme.Typography.fontFamily.bold,
   },
   changePhotoButton: {
     paddingHorizontal: Theme.Spacing.lg,
@@ -226,13 +316,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Theme.Colors.neutral.gray200,
   },
-  textAreaWrapper: {
-    height: 100,
-    alignItems: 'flex-start',
-    paddingTop: Theme.Spacing.md,
-  },
-  textAreaIcon: {
-    marginTop: 2,
+  disabledInput: {
+    backgroundColor: Theme.Colors.neutral.gray100,
+    opacity: 0.7,
   },
   input: {
     flex: 1,
@@ -241,9 +327,12 @@ const styles = StyleSheet.create({
     color: Theme.Colors.neutral.gray900,
     fontFamily: Theme.Typography.fontFamily.regular,
   },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
+  helperText: {
+    fontSize: Theme.Typography.fontSize.xs,
+    color: Theme.Colors.neutral.gray500,
+    marginTop: 4,
+    marginLeft: 4,
+    fontFamily: Theme.Typography.fontFamily.regular,
   },
   saveButton: {
     backgroundColor: Theme.Colors.primary.main,
@@ -256,6 +345,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
   saveButtonText: {
     fontSize: Theme.Typography.fontSize.md,

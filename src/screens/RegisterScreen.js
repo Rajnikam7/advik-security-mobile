@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,22 +8,122 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
+import { useDispatch } from 'react-redux';
+import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Theme } from '../assets/themes';
+import authService from '../services/authService';
+import { validateRegistrationForm } from '../utils/validation';
+import { setUser } from '../store/slices/authSlice';
 
 const RegisterScreen = ({ navigation }) => {
+  const dispatch = useDispatch();
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [fetchingProfile, setFetchingProfile] = useState(true);
+  const [errors, setErrors] = useState({ name: '', email: '' });
 
-  const handleContinue = () => {
-    if (fullName.trim() && email.trim()) {
-      navigation.navigate('Main');
+  // Fetch user profile on mount
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      setFetchingProfile(true);
+      const response = await authService.getProfile();
+      console.log('user profile', response);
+      if (response.data && response.data.user) {
+        const userData = response.data.user;
+
+        // Pre-fill form with existing data
+        if (userData.name) setFullName(userData.name);
+        if (userData.email) setEmail(userData.email);
+
+        // Update Redux store
+        dispatch(setUser(userData));
+      }
+    } catch (err) {
+      console.log('Failed to fetch profile:', err);
+      // Continue with empty form if profile fetch fails
+    } finally {
+      setFetchingProfile(false);
     }
   };
 
-  const isFormValid = fullName.trim().length > 0 && email.trim().length > 0;
+  const handleContinue = async () => {
+    setErrors({ name: '', email: '' });
+
+    // Validate form
+    const validation = validateRegistrationForm(fullName, email);
+    if (!validation.isValid) {
+      // Set inline errors based on validation message
+      if (validation.message.toLowerCase().includes('name')) {
+        setErrors(prev => ({ ...prev, name: validation.message }));
+      } else if (validation.message.toLowerCase().includes('email')) {
+        setErrors(prev => ({ ...prev, email: validation.message }));
+      }
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await authService.register(
+        fullName.trim(),
+        email.trim(),
+      );
+
+      // Update Redux with complete profile
+      dispatch(setUser(response.user));
+
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Your profile has been created successfully!',
+      });
+
+      setTimeout(() => {
+        navigation.replace('Main');
+      }, 1000);
+    } catch (err) {
+      console.log(err)
+      const errorMessage =
+        err.message || 'Failed to complete registration. Please try again.';
+      Toast.show({
+        type: 'error',
+        text1: 'Registration Failed',
+        text2: errorMessage,
+      });
+
+      // Handle specific field errors
+      if (errorMessage.toLowerCase().includes('email')) {
+        setErrors(prev => ({ ...prev, email: errorMessage }));
+      } else if (errorMessage.toLowerCase().includes('name')) {
+        setErrors(prev => ({ ...prev, name: errorMessage }));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isFormValid =
+    fullName.trim().length > 0 && email.trim().length > 0 && !loading;
+
+  // Show loading while fetching profile
+  if (fetchingProfile) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Theme.Colors.primary.main} />
+        <Text style={styles.loadingText}>Loading your profile...</Text>
+      </View>
+    );
+  }
 
   return (
     <LinearGradient
@@ -41,7 +141,6 @@ const RegisterScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo and Brand */}
           <View style={styles.headerContainer}>
             <View style={styles.logoContainer}>
               <View style={styles.logoCircle}>
@@ -64,7 +163,12 @@ const RegisterScreen = ({ navigation }) => {
             {/* Full Name */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Full Name</Text>
-              <View style={styles.inputWrapper}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  errors.name && styles.inputWrapperError,
+                ]}
+              >
                 <View style={styles.iconContainer}>
                   <Icon
                     name="person-outline"
@@ -77,15 +181,27 @@ const RegisterScreen = ({ navigation }) => {
                   placeholder="Jane Doe"
                   placeholderTextColor={Theme.Colors.neutral.gray400}
                   value={fullName}
-                  onChangeText={setFullName}
+                  onChangeText={text => {
+                    setFullName(text);
+                    setErrors(prev => ({ ...prev, name: '' }));
+                  }}
+                  editable={!loading}
                 />
               </View>
+              {errors.name ? (
+                <Text style={styles.errorText}>{errors.name}</Text>
+              ) : null}
             </View>
 
             {/* Email Address */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email Address</Text>
-              <View style={styles.inputWrapper}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  errors.email && styles.inputWrapperError,
+                ]}
+              >
                 <View style={styles.iconContainer}>
                   <Icon
                     name="mail-outline"
@@ -100,9 +216,16 @@ const RegisterScreen = ({ navigation }) => {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={text => {
+                    setEmail(text);
+                    setErrors(prev => ({ ...prev, email: '' }));
+                  }}
+                  editable={!loading}
                 />
               </View>
+              {errors.email ? (
+                <Text style={styles.errorText}>{errors.email}</Text>
+              ) : null}
             </View>
           </View>
 
@@ -115,7 +238,11 @@ const RegisterScreen = ({ navigation }) => {
             disabled={!isFormValid}
             activeOpacity={0.8}
           >
-            <Text style={styles.continueButtonText}>Continue</Text>
+            {loading ? (
+              <ActivityIndicator color={Theme.Colors.neutral.white} />
+            ) : (
+              <Text style={styles.continueButtonText}>Continue</Text>
+            )}
           </TouchableOpacity>
 
           {/* Terms */}
@@ -144,6 +271,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: Theme.Spacing.lg,
     paddingTop: Theme.Spacing.xxl + 10,
     paddingBottom: Theme.Spacing.xl,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Theme.Colors.neutral.white,
+  },
+  loadingText: {
+    marginTop: Theme.Spacing.md,
+    fontSize: Theme.Typography.fontSize.md,
+    color: Theme.Colors.neutral.gray600,
+    fontFamily: Theme.Typography.fontFamily.regular,
   },
 
   // Header
@@ -301,6 +440,16 @@ const styles = StyleSheet.create({
     color: Theme.Colors.primary.main,
     fontWeight: Theme.Typography.fontWeight.semibold,
     fontFamily: Theme.Typography.fontFamily.semibold,
+  },
+  inputWrapperError: {
+    borderColor: Theme.Colors.error.main,
+    borderWidth: 2,
+  },
+  errorText: {
+    fontSize: Theme.Typography.fontSize.xs + 1,
+    color: Theme.Colors.error.main,
+    marginTop: Theme.Spacing.xs,
+    fontFamily: Theme.Typography.fontFamily.regular,
   },
 });
 

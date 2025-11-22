@@ -1,14 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Theme } from '../assets/themes';
+import { getInitials, getAvatarColor } from '../utils/avatarUtils';
 
 const HomeHeader = ({ userName, onNotificationPress }) => {
+  const initials = getInitials(userName);
+  const avatarColor = getAvatarColor(userName);
+
   return (
     <View style={styles.container}>
       <View style={styles.leftSection}>
-        <View style={styles.avatar}>
-          <Icon name="person" size={24} color={Theme.Colors.neutral.white} />
+        <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+          <Text style={styles.avatarText}>{initials}</Text>
         </View>
         <Text style={styles.greeting}>Hello, {userName}</Text>
       </View>
@@ -32,7 +36,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Theme.Spacing.lg,
-    paddingTop: Theme.Spacing.lg,
+    paddingTop: Theme.Spacing.xl,
     paddingBottom: Theme.Spacing.md,
   },
   leftSection: {
@@ -43,10 +47,15 @@ const styles = StyleSheet.create({
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 25,
-    backgroundColor: Theme.Colors.primary.main,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: Theme.Typography.fontWeight.bold,
+    color: Theme.Colors.neutral.white,
+    fontFamily: Theme.Typography.fontFamily.bold,
   },
   greeting: {
     fontSize: Theme.Typography.fontSize.xl,

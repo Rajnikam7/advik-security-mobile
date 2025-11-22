@@ -10,15 +10,23 @@ import {
   Platform,
   Alert,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Toast from 'react-native-toast-message';
 import { Theme } from '../assets/themes';
+import complaintService from '../services/complaintService';
 
 const FileComplaintScreen = ({ navigation, route }) => {
-  const { serviceType = 'CCTV' } = route.params || {};
+  const { 
+    serviceType = 'CCTV', 
+    serviceId = null,
+    servicePriorities = []
+  } = route.params || {};
+  
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('123 Main St, Anytown');
@@ -31,6 +39,7 @@ const FileComplaintScreen = ({ navigation, route }) => {
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [complaintId, setComplaintId] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handleImagePicker = () => {
     const options = {
@@ -110,35 +119,60 @@ const FileComplaintScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleProceedToPayment = () => {
-    setShowSummaryModal(false);
+  const handleProceedToPayment = async () => {
+    try {
+      setSubmitting(true);
+      setShowSummaryModal(false);
 
-    // Generate complaint ID
-    const date = new Date();
-    const id = `AS${date.getFullYear()}${String(date.getMonth() + 1).padStart(
-      2,
-      '0',
-    )}${String(date.getDate()).padStart(2, '0')}-${String(
-      Math.floor(Math.random() * 1000),
-    ).padStart(3, '0')}`;
-    setComplaintId(id);
+      const priorityDetails = getPriorityDetails();
+      if (!priorityDetails) {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Invalid priority selected',
+        });
+        return;
+      }
 
-    console.log('Submit complaint', {
-      id,
-      title,
-      description,
-      location,
-      images: selectedImages,
-      dateTime: selectedDateTime,
-      priority: selectedPriority,
-    });
+      const complaintData = {
+        serviceType: serviceId,
+        servicePriority: priorityDetails.servicePriority,
+        subject: title,
+        description: description,
+        location: location,
+        images: selectedImages,
+      };
 
-    setTimeout(() => setShowSuccessModal(true), 300);
+      const response = await complaintService.createComplaint(complaintData);
+      
+      if (response.data) {
+        setComplaintId(response.data._id);
+        
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Complaint created successfully',
+        });
+
+        setTimeout(() => setShowSuccessModal(true), 300);
+      }
+    } catch (error) {
+      console.error('Error creating complaint:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message || 'Failed to create complaint',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleTrackComplaint = () => {
     setShowSuccessModal(false);
-    navigation.navigate('Complaints');
+    navigation.navigate('Complaints', {
+      screen: 'ComplaintsList',
+    });
   };
 
   const handleBackToHome = () => {
@@ -147,10 +181,18 @@ const FileComplaintScreen = ({ navigation, route }) => {
   };
 
   const getPriorityDetails = () => {
-    if (selectedPriority === 'priority') {
-      return { name: 'High Priority', price: 500, response: '1 hour' };
-    }
-    return { name: 'Standard', price: 300, response: '24 hours' };
+    if (!selectedPriority) return null;
+    const priority = servicePriorities.find(p => p._id === selectedPriority);
+    return priority || null;
+  };
+
+  const getResponseTime = (priorityName) => {
+    const responseTimeMap = {
+      'Standard': '24-48 hours',
+      'Express': '12-24 hours',
+      'Urgent': '1-4 hours',
+    };
+    return responseTimeMap[priorityName] || '24 hours';
   };
 
   const isFormValid = title.trim() && description.trim() && location.trim();
@@ -351,71 +393,56 @@ const FileComplaintScreen = ({ navigation, route }) => {
                 </Text>
               </View>
 
-              {/* Priority Service */}
-              <TouchableOpacity
-                style={[
-                  styles.priorityOption,
-                  selectedPriority === 'priority' && styles.prioritySelected,
-                ]}
-                onPress={() => handlePrioritySelect('priority')}
-              >
-                <View style={styles.priorityLeft}>
-                  <View style={styles.priorityTitleRow}>
-                    <Text style={styles.priorityTitle}>Priority Service</Text>
-                    <View style={styles.fastestBadge}>
-                      <Text style={styles.fastestText}>Fastest</Text>
+              {/* Dynamic Priority Options */}
+              {servicePriorities.length > 0 ? (
+                servicePriorities.map((priority, index) => (
+                  <TouchableOpacity
+                    key={priority._id}
+                    style={[
+                      styles.priorityOption,
+                      index > 0 && styles.standardOption,
+                      selectedPriority === priority._id && 
+                        (index === servicePriorities.length - 1 ? styles.prioritySelected : styles.standardSelected),
+                    ]}
+                    onPress={() => handlePrioritySelect(priority._id)}
+                  >
+                    <View style={styles.priorityLeft}>
+                      <View style={styles.priorityTitleRow}>
+                        <Text style={styles.priorityTitle}>
+                          {priority.servicePriority} Service
+                        </Text>
+                        {index === servicePriorities.length - 1 && (
+                          <View style={styles.fastestBadge}>
+                            <Text style={styles.fastestText}>Fastest</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.prioritySubtitle}>
+                        Response within {getResponseTime(priority.servicePriority)}
+                      </Text>
                     </View>
-                  </View>
-                  <Text style={styles.prioritySubtitle}>
-                    Response within 1 hour
+                    <View style={styles.priorityRight}>
+                      <Text style={styles.priorityPrice}>₹{priority.pricing}</Text>
+                      <View
+                        style={[
+                          index === servicePriorities.length - 1 ? styles.radioButton : styles.radioButtonOutline,
+                          selectedPriority === priority._id && styles.radioButtonSelected,
+                        ]}
+                      >
+                        {selectedPriority === priority._id && (
+                          <View style={styles.radioButtonInner} />
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.noPrioritiesContainer}>
+                  <Text style={styles.noPrioritiesText}>
+                    No service priorities available
                   </Text>
                 </View>
-                <View style={styles.priorityRight}>
-                  <Text style={styles.priorityPrice}>₹500</Text>
-                  <View
-                    style={[
-                      styles.radioButton,
-                      selectedPriority === 'priority' &&
-                        styles.radioButtonSelected,
-                    ]}
-                  >
-                    {selectedPriority === 'priority' && (
-                      <View style={styles.radioButtonInner} />
-                    )}
-                  </View>
-                </View>
-              </TouchableOpacity>
-
-              {/* Standard Service */}
-              <TouchableOpacity
-                style={[
-                  styles.priorityOption,
-                  styles.standardOption,
-                  selectedPriority === 'standard' && styles.standardSelected,
-                ]}
-                onPress={() => handlePrioritySelect('standard')}
-              >
-                <View style={styles.priorityLeft}>
-                  <Text style={styles.priorityTitle}>Standard Service</Text>
-                  <Text style={styles.prioritySubtitle}>
-                    Response within 24 hours
-                  </Text>
-                </View>
-                <View style={styles.priorityRight}>
-                  <Text style={styles.priorityPrice}>₹300</Text>
-                  <View
-                    style={[
-                      styles.radioButtonOutline,
-                      selectedPriority === 'standard' &&
-                        styles.radioButtonSelected,
-                    ]}
-                  >
-                    {selectedPriority === 'standard' && (
-                      <View style={styles.radioButtonInner} />
-                    )}
-                  </View>
-                </View>
-              </TouchableOpacity>
+              )}
 
               {/* Review and Pay Button */}
               <TouchableOpacity
@@ -517,36 +544,43 @@ const FileComplaintScreen = ({ navigation, route }) => {
               </View>
 
               {/* Cost Breakdown */}
-              <View style={styles.costCard}>
-                <View style={styles.costRow}>
-                  <Text style={styles.costLabel}>Priority</Text>
-                  <Text style={styles.costValue}>
-                    {getPriorityDetails().name}
-                  </Text>
+              {getPriorityDetails() && (
+                <View style={styles.costCard}>
+                  <View style={styles.costRow}>
+                    <Text style={styles.costLabel}>Priority</Text>
+                    <Text style={styles.costValue}>
+                      {getPriorityDetails().servicePriority} Service
+                    </Text>
+                  </View>
+                  <View style={styles.costRow}>
+                    <Text style={styles.costLabel}>Service Cost</Text>
+                    <Text style={styles.costValue}>
+                      ₹{getPriorityDetails().pricing}.00
+                    </Text>
+                  </View>
+                  <View style={styles.divider} />
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>Total Amount</Text>
+                    <Text style={styles.totalAmount}>
+                      ₹{getPriorityDetails().pricing}.00
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.costRow}>
-                  <Text style={styles.costLabel}>Service Cost</Text>
-                  <Text style={styles.costValue}>
-                    ₹{getPriorityDetails().price}.00
-                  </Text>
-                </View>
-                <View style={styles.divider} />
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Total Amount</Text>
-                  <Text style={styles.totalAmount}>
-                    ₹{getPriorityDetails().price}.00
-                  </Text>
-                </View>
-              </View>
+              )}
             </ScrollView>
 
             {/* Proceed Button */}
             <View style={styles.summaryFooter}>
               <TouchableOpacity
-                style={styles.proceedButton}
+                style={[styles.proceedButton, submitting && styles.proceedButtonDisabled]}
                 onPress={handleProceedToPayment}
+                disabled={submitting}
               >
-                <Text style={styles.proceedButtonText}>Proceed to Payment</Text>
+                {submitting ? (
+                  <ActivityIndicator size="small" color={Theme.Colors.neutral.white} />
+                ) : (
+                  <Text style={styles.proceedButtonText}>Submit Complaint</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -584,13 +618,17 @@ const FileComplaintScreen = ({ navigation, route }) => {
             <View style={styles.successDetailsCard}>
               <View style={styles.successDetailRow}>
                 <Text style={styles.successDetailLabel}>COMPLAINT ID</Text>
-                <Text style={styles.successDetailValue}>#{complaintId}</Text>
+                <Text style={styles.successDetailValue}>
+                  {complaintId ? `#${complaintId.slice(-8).toUpperCase()}` : 'N/A'}
+                </Text>
               </View>
               <View style={styles.successDetailRow}>
                 <Text style={styles.successDetailLabel}>
                   ESTIMATED RESOLUTION
                 </Text>
-                <Text style={styles.successDetailValue}>2-3 Business Days</Text>
+                <Text style={styles.successDetailValue}>
+                  {getPriorityDetails() ? getResponseTime(getPriorityDetails().servicePriority) : '2-3 Business Days'}
+                </Text>
               </View>
             </View>
 
@@ -915,6 +953,16 @@ const styles = StyleSheet.create({
     color: Theme.Colors.neutral.white,
     fontFamily: Theme.Typography.fontFamily.bold,
   },
+  noPrioritiesContainer: {
+    padding: Theme.Spacing.xl,
+    alignItems: 'center',
+  },
+  noPrioritiesText: {
+    fontSize: Theme.Typography.fontSize.md,
+    color: Theme.Colors.neutral.gray500,
+    fontFamily: Theme.Typography.fontFamily.regular,
+    textAlign: 'center',
+  },
   summaryModalOverlay: {
     flex: 1,
     backgroundColor: Theme.Colors.neutral.white,
@@ -1102,6 +1150,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
+  },
+  proceedButtonDisabled: {
+    opacity: 0.6,
   },
   proceedButtonText: {
     fontSize: Theme.Typography.fontSize.md,
