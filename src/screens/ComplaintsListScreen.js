@@ -7,46 +7,44 @@ import {
   ScrollView,
   TextInput,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Toast from 'react-native-toast-message';
 import { Theme } from '../assets/themes';
+import complaintService from '../services/complaintService';
 
 const ComplaintsListScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [complaints, setComplaints] = useState([]);
 
-  // Mock data - replace with API call
-  const [complaints] = useState([
-    {
-      id: 'AS20240728-001',
-      title: 'Camera Not Recording',
-      serviceType: 'CCTV',
-      status: 'in_progress',
-      date: '2024-07-28',
-      priority: 'High',
-      location: '123, Cyberpark, Kozhikode',
-    },
-    {
-      id: 'AS20240727-045',
-      title: 'GPS Device Offline',
-      serviceType: 'GPS',
-      status: 'pending',
-      date: '2024-07-27',
-      priority: 'Standard',
-      location: 'Main Street, Kerala',
-    },
-    {
-      id: 'AS20240726-032',
-      title: 'Intercom System Issue',
-      serviceType: 'Intercom',
-      status: 'resolved',
-      date: '2024-07-26',
-      priority: 'High',
-      location: 'Building A, Kochi',
-    },
-  ]);
+  useFocusEffect(
+    React.useCallback(() => {
+      loadComplaints();
+    }, []),
+  );
+
+  const loadComplaints = async () => {
+    try {
+      setLoading(true);
+      const response = await complaintService.getUserComplaints();
+      setComplaints(response.data || []);
+    } catch (error) {
+      console.error('Error loading complaints:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message || 'Failed to load complaints',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filters = [
     { id: 'all', label: 'All' },
@@ -56,13 +54,17 @@ const ComplaintsListScreen = ({ navigation }) => {
   ];
 
   const getStatusColor = status => {
-    switch (status) {
-      case 'pending':
+    const statusLower = status?.toLowerCase();
+    switch (statusLower) {
+      case 'open':
         return '#F59E0B';
-      case 'in_progress':
+      case 'assigned':
+      case 'inprogress':
         return '#3B82F6';
       case 'resolved':
         return '#10B981';
+      case 'closed':
+        return '#6B7280';
       default:
         return Theme.Colors.neutral.gray500;
     }
@@ -70,31 +72,59 @@ const ComplaintsListScreen = ({ navigation }) => {
 
   const getStatusLabel = status => {
     switch (status) {
-      case 'pending':
-        return 'Pending';
-      case 'in_progress':
+      case 'Open':
+        return 'Open';
+      case 'Assigned':
+        return 'Assigned';
+      case 'InProgress':
         return 'In Progress';
-      case 'resolved':
+      case 'Resolved':
         return 'Resolved';
+      case 'Closed':
+        return 'Closed';
       default:
         return status;
     }
   };
 
-  const onRefresh = () => {
+  const formatDate = dateString => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1500);
+    await loadComplaints();
+    setRefreshing(false);
   };
 
   const filteredComplaints = complaints.filter(complaint => {
     const matchesSearch =
-      complaint.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      complaint.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter =
-      selectedFilter === 'all' || complaint.status === selectedFilter;
+      complaint.subject?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      complaint._id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      complaint.serviceType?.serviceName
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
+    const statusLower = complaint.status?.toLowerCase();
+    const filterLower = selectedFilter.toLowerCase();
+
+    let matchesFilter = selectedFilter === 'all';
+    if (!matchesFilter) {
+      if (filterLower === 'pending') {
+        matchesFilter = statusLower === 'open';
+      } else if (filterLower === 'in_progress') {
+        matchesFilter =
+          statusLower === 'assigned' || statusLower === 'inprogress';
+      } else {
+        matchesFilter = statusLower === filterLower;
+      }
+    }
+
     return matchesSearch && matchesFilter;
   });
 
@@ -140,136 +170,156 @@ const ComplaintsListScreen = ({ navigation }) => {
           </TouchableOpacity>
         )}
       </View>
-
-      {/* Filter Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterContainer}
-        contentContainerStyle={styles.filterContent}
-      >
-        {filters.map(filter => (
-          <TouchableOpacity
-            key={filter.id}
-            style={[
-              styles.filterTab,
-              selectedFilter === filter.id && styles.filterTabActive,
-            ]}
-            onPress={() => setSelectedFilter(filter.id)}
-          >
-            <Text
+      <View>
+        {/* Filter Tabs */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterContainer}
+          contentContainerStyle={styles.filterContent}
+        >
+          {filters.map(filter => (
+            <TouchableOpacity
+              key={filter.id}
               style={[
-                styles.filterTabText,
-                selectedFilter === filter.id && styles.filterTabTextActive,
+                styles.filterTab,
+                selectedFilter === filter.id && styles.filterTabActive,
               ]}
+              onPress={() => setSelectedFilter(filter.id)}
             >
-              {filter.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Text
+                style={[
+                  styles.filterTabText,
+                  selectedFilter === filter.id && styles.filterTabTextActive,
+                ]}
+              >
+                {filter.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Complaints List */}
-      <ScrollView
-        style={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {filteredComplaints.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Icon
-              name="document-text-outline"
-              size={64}
-              color={Theme.Colors.neutral.gray300}
-            />
-            <Text style={styles.emptyStateText}>No complaints found</Text>
-            <Text style={styles.emptyStateSubtext}>
-              {searchQuery
-                ? 'Try adjusting your search'
-                : 'Create your first complaint'}
-            </Text>
-          </View>
-        ) : (
-          filteredComplaints.map(complaint => (
-            <TouchableOpacity
-              key={complaint.id}
-              style={styles.complaintCard}
-              onPress={() =>
-                navigation.navigate('ComplaintDetail', { complaint })
-              }
-              activeOpacity={0.7}
-            >
-              <View style={styles.complaintHeader}>
-                <View style={styles.complaintHeaderLeft}>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Theme.Colors.primary.main} />
+          <Text style={styles.loadingText}>Loading complaints...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {filteredComplaints.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Icon
+                name="document-text-outline"
+                size={64}
+                color={Theme.Colors.neutral.gray300}
+              />
+              <Text style={styles.emptyStateText}>No complaints found</Text>
+              <Text style={styles.emptyStateSubtext}>
+                {searchQuery
+                  ? 'Try adjusting your search'
+                  : 'Create your first complaint'}
+              </Text>
+            </View>
+          ) : (
+            filteredComplaints.map(complaint => (
+              <TouchableOpacity
+                key={complaint._id}
+                style={styles.complaintCard}
+                onPress={() =>
+                  navigation.navigate('ComplaintDetail', {
+                    complaintId: complaint._id,
+                  })
+                }
+                activeOpacity={0.7}
+              >
+                <View style={styles.complaintHeader}>
+                  <View style={styles.complaintHeaderLeft}>
+                    <View
+                      style={[
+                        styles.serviceIcon,
+                        { backgroundColor: Theme.Colors.primary.lightest },
+                      ]}
+                    >
+                      <Icon
+                        name={
+                          complaint.serviceType?.serviceName === 'CCTV'
+                            ? 'videocam'
+                            : complaint.serviceType?.serviceName === 'GPS'
+                            ? 'navigate'
+                            : 'mic'
+                        }
+                        size={20}
+                        color={Theme.Colors.primary.main}
+                      />
+                    </View>
+                    <View>
+                      <Text style={styles.complaintId}>
+                        #{complaint._id.slice(-8).toUpperCase()}
+                      </Text>
+                      <Text style={styles.serviceType}>
+                        {complaint.serviceType?.serviceName || 'N/A'}
+                      </Text>
+                    </View>
+                  </View>
                   <View
                     style={[
-                      styles.serviceIcon,
-                      { backgroundColor: Theme.Colors.primary.lightest },
+                      styles.statusBadge,
+                      {
+                        backgroundColor: `${getStatusColor(
+                          complaint.status,
+                        )}20`,
+                      },
                     ]}
                   >
-                    <Icon
-                      name={
-                        complaint.serviceType === 'CCTV'
-                          ? 'videocam'
-                          : complaint.serviceType === 'GPS'
-                          ? 'navigate'
-                          : 'mic'
-                      }
-                      size={20}
-                      color={Theme.Colors.primary.main}
+                    <View
+                      style={[
+                        styles.statusDot,
+                        { backgroundColor: getStatusColor(complaint.status) },
+                      ]}
                     />
-                  </View>
-                  <View>
-                    <Text style={styles.complaintId}>{complaint.id}</Text>
-                    <Text style={styles.serviceType}>
-                      {complaint.serviceType}
+                    <Text
+                      style={[
+                        styles.statusText,
+                        { color: getStatusColor(complaint.status) },
+                      ]}
+                    >
+                      {getStatusLabel(complaint.status)}
                     </Text>
                   </View>
                 </View>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    {
-                      backgroundColor: `${getStatusColor(complaint.status)}20`,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.statusDot,
-                      { backgroundColor: getStatusColor(complaint.status) },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.statusText,
-                      { color: getStatusColor(complaint.status) },
-                    ]}
-                  >
-                    {getStatusLabel(complaint.status)}
+
+                <Text style={styles.complaintTitle}>
+                  {complaint.subject || 'No subject'}
+                </Text>
+
+                <View style={styles.complaintFooter}>
+                  <View style={styles.locationRow}>
+                    <Icon
+                      name="location-outline"
+                      size={14}
+                      color={Theme.Colors.neutral.gray500}
+                    />
+                    <Text style={styles.locationText} numberOfLines={1}>
+                      {complaint.location || 'No location'}
+                    </Text>
+                  </View>
+                  <Text style={styles.dateText}>
+                    {formatDate(complaint.createdAt)}
                   </Text>
                 </View>
-              </View>
-
-              <Text style={styles.complaintTitle}>{complaint.title}</Text>
-
-              <View style={styles.complaintFooter}>
-                <View style={styles.locationRow}>
-                  <Icon
-                    name="location-outline"
-                    size={14}
-                    color={Theme.Colors.neutral.gray500}
-                  />
-                  <Text style={styles.locationText}>{complaint.location}</Text>
-                </View>
-                <Text style={styles.dateText}>{complaint.date}</Text>
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+      )}
     </LinearGradient>
   );
 };
@@ -278,12 +328,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Theme.Spacing.xl * 2,
+  },
+  loadingText: {
+    marginTop: Theme.Spacing.md,
+    fontSize: Theme.Typography.fontSize.md,
+    color: Theme.Colors.neutral.gray600,
+    fontFamily: Theme.Typography.fontFamily.regular,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Theme.Spacing.lg,
-    paddingTop: Theme.Spacing.lg,
+    paddingTop: Theme.Spacing.xl,
     paddingBottom: Theme.Spacing.md,
   },
   headerTitle: {
@@ -331,12 +393,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Theme.Spacing.lg,
   },
   filterTab: {
-    paddingHorizontal: Theme.Spacing.lg - 8,
-    paddingVertical: Theme.Spacing.sm,
+    paddingHorizontal: Theme.Spacing.md + 2,
+    paddingVertical: Theme.Spacing.sm + 2,
     borderRadius: 8,
-    height: 40,
+    height: 38,
+    justifyContent: 'center',
     backgroundColor: Theme.Colors.neutral.white,
-    marginRight: Theme.Spacing.sm - 4,
+    marginRight: Theme.Spacing.sm,
     borderWidth: 1,
     borderColor: Theme.Colors.neutral.gray200,
   },
@@ -345,6 +408,7 @@ const styles = StyleSheet.create({
     borderColor: Theme.Colors.primary.main,
   },
   filterTabText: {
+    // margin:Theme.Spacing.sm,
     fontSize: Theme.Typography.fontSize.sm,
     fontWeight: Theme.Typography.fontWeight.medium,
     color: Theme.Colors.neutral.gray800,
@@ -354,7 +418,6 @@ const styles = StyleSheet.create({
     color: Theme.Colors.neutral.white,
   },
   listContainer: {
-    // flex: 1,
     paddingHorizontal: Theme.Spacing.lg,
   },
   complaintCard: {
@@ -369,6 +432,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
     borderColor: Theme.Colors.neutral.gray200,
+    width: '100%',
   },
   complaintHeader: {
     flexDirection: 'row',

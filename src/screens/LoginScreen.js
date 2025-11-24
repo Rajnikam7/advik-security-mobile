@@ -132,11 +132,11 @@ const LoginScreen = ({ navigation }) => {
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
           </View>
 
-          <View style={styles.testModeContainer}>
+          {/* <View style={styles.testModeContainer}>
             <Text style={styles.testModeText}>
               Test Mode: Use {TEST_PHONE} / OTP: {TEST_OTP}
             </Text>
-          </View>
+          </View> */}
 
           <TouchableOpacity
             style={[

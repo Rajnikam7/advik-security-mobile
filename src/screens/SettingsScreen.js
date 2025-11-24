@@ -9,14 +9,16 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
+import DeviceInfo from 'react-native-device-info';
 import { Theme } from '../assets/themes';
 
 const SettingsScreen = ({ navigation }) => {
   const [pushNotifications, setPushNotifications] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [smsNotifications, setSmsNotifications] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [biometric, setBiometric] = useState(true);
+  const appVersion = DeviceInfo.getVersion();
+
+  const handleNavigate = (screen) => {
+    navigation.navigate(screen);
+  };
 
   const settingsSections = [
     {
@@ -42,6 +44,7 @@ const SettingsScreen = ({ navigation }) => {
           subtitle: 'Legal information',
           type: 'navigate',
           icon: 'document-text-outline',
+          screen: 'Terms',
         },
         {
           id: 'privacy',
@@ -49,13 +52,15 @@ const SettingsScreen = ({ navigation }) => {
           subtitle: 'How we use your data',
           type: 'navigate',
           icon: 'shield-outline',
+          screen: 'PrivacyPolicy',
         },
         {
           id: 'about',
           label: 'About App',
-          subtitle: 'Version 1.0.0',
+          subtitle: `Version ${appVersion}`,
           type: 'navigate',
           icon: 'information-circle-outline',
+          screen: 'AboutApp',
         },
       ],
     },
@@ -115,6 +120,7 @@ const SettingsScreen = ({ navigation }) => {
                   ) : (
                     <TouchableOpacity
                       style={styles.settingItem}
+                      onPress={() => item.screen && handleNavigate(item.screen)}
                       activeOpacity={0.7}
                     >
                       <View style={styles.settingLeft}>
@@ -154,7 +160,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Theme.Spacing.sm,
-    paddingTop: Theme.Spacing.md,
+    paddingTop: Theme.Spacing.xl,
     paddingBottom: Theme.Spacing.md,
   },
   backButton: {

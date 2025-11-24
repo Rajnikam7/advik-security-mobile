@@ -84,6 +84,7 @@ const HomeScreen = ({ navigation }) => {
       <HomeHeader
         userName={userName}
         onNotificationPress={handleNotificationPress}
+        navigation={navigation}
       />
 
       <ScrollView

@@ -4,16 +4,19 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { Theme } from '../assets/themes';
 import { getInitials, getAvatarColor } from '../utils/avatarUtils';
 
-const HomeHeader = ({ userName, onNotificationPress }) => {
+const HomeHeader = ({ userName, onNotificationPress, navigation }) => {
   const initials = getInitials(userName);
   const avatarColor = getAvatarColor(userName);
 
+  const handleProfilePress = () => {
+    navigation.navigate('Profile', { screen: 'ProfileMain' });
+  };
   return (
     <View style={styles.container}>
       <View style={styles.leftSection}>
-        <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+        <TouchableOpacity onPress={handleProfilePress} style={[styles.avatar, { backgroundColor: avatarColor }]}>
           <Text style={styles.avatarText}>{initials}</Text>
-        </View>
+        </TouchableOpacity>
         <Text style={styles.greeting}>Hello, {userName}</Text>
       </View>
       <TouchableOpacity

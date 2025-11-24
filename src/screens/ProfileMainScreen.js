@@ -6,23 +6,27 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Toast from 'react-native-toast-message';
+import Config from 'react-native-config';
 import { Theme } from '../assets/themes';
 import authService from '../services/authService';
 import { getInitials, getAvatarColor } from '../utils/avatarUtils';
+import DeviceInfo from 'react-native-device-info';
 
 const ProfileMainScreen = ({ navigation }) => {
+  const appVersion = DeviceInfo.getVersion();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(
     React.useCallback(() => {
       loadProfile();
-    }, [])
+    }, []),
   );
 
   const loadProfile = async () => {
@@ -40,6 +44,32 @@ const ProfileMainScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCallSupport = () => {
+    const phoneNumber = Config.SUPPORT_PHONE_NUMBER;
+    const phoneUrl = `tel:${phoneNumber}`;
+
+    Linking.canOpenURL(phoneUrl)
+      .then(supported => {
+        if (supported) {
+          return Linking.openURL(phoneUrl);
+        } else {
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Unable to make phone calls on this device',
+          });
+        }
+      })
+      .catch(err => {
+        console.error('Error opening dialer:', err);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to open phone dialer',
+        });
+      });
   };
 
   const handleLogout = async () => {
@@ -64,6 +94,14 @@ const ProfileMainScreen = ({ navigation }) => {
     }
   };
 
+  const handleMenuPress = item => {
+    if (item.id === 'help') {
+      handleCallSupport();
+    } else if (item.screen) {
+      navigation.navigate(item.screen);
+    }
+  };
+
   const menuItems = [
     {
       id: 'personal',
@@ -82,9 +120,8 @@ const ProfileMainScreen = ({ navigation }) => {
     {
       id: 'help',
       title: 'Help & Support',
-      subtitle: 'FAQs & contact',
-      icon: 'help-circle-outline',
-      screen: 'Help',
+      subtitle: 'Call +91 9999999999',
+      icon: 'call-outline',
     },
   ];
 
@@ -143,7 +180,7 @@ const ProfileMainScreen = ({ navigation }) => {
             <TouchableOpacity
               key={item.id}
               style={styles.menuItem}
-              onPress={() => navigation.navigate(item.screen)}
+              onPress={() => handleMenuPress(item)}
               activeOpacity={0.7}
             >
               <View style={styles.menuIconContainer}>
@@ -178,7 +215,7 @@ const ProfileMainScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         {/* Version */}
-        <Text style={styles.versionText}>Version 1.0.0</Text>
+        <Text style={styles.versionText}>Version {appVersion}</Text>
       </ScrollView>
     </LinearGradient>
   );

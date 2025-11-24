@@ -15,7 +15,6 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import Toast from 'react-native-toast-message';
 import { Theme } from '../assets/themes';
 import complaintService from '../services/complaintService';
@@ -31,9 +30,6 @@ const FileComplaintScreen = ({ navigation, route }) => {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('123 Main St, Anytown');
   const [selectedImages, setSelectedImages] = useState([]);
-  const [selectedDateTime, setSelectedDateTime] = useState(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
   const [showPriorityModal, setShowPriorityModal] = useState(false);
   const [selectedPriority, setSelectedPriority] = useState(null);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
@@ -69,37 +65,6 @@ const FileComplaintScreen = ({ navigation, route }) => {
   const handleRemoveImage = index => {
     const updatedImages = selectedImages.filter((_, i) => i !== index);
     setSelectedImages(updatedImages);
-  };
-
-  const handleDateChange = (event, date) => {
-    setShowDatePicker(false);
-    if (date) {
-      setSelectedDateTime(date);
-      // Show time picker after date is selected
-      setTimeout(() => setShowTimePicker(true), 100);
-    }
-  };
-
-  const handleTimeChange = (event, time) => {
-    setShowTimePicker(false);
-    if (time && selectedDateTime) {
-      const updatedDateTime = new Date(selectedDateTime);
-      updatedDateTime.setHours(time.getHours());
-      updatedDateTime.setMinutes(time.getMinutes());
-      setSelectedDateTime(updatedDateTime);
-    }
-  };
-
-  const formatDateTime = date => {
-    if (!date) return '';
-    const options = {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    };
-    return date.toLocaleString('en-US', options);
   };
 
   const handleSubmit = () => {
@@ -313,53 +278,6 @@ const FileComplaintScreen = ({ navigation, route }) => {
           </ScrollView>
         </View>
 
-        {/* Preferred Service Time */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Preferred Service Time & Date</Text>
-          <TouchableOpacity
-            style={styles.dateTimeInput}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <Text
-              style={[
-                styles.dateTimeText,
-                !selectedDateTime && styles.placeholderText,
-              ]}
-            >
-              {selectedDateTime
-                ? formatDateTime(selectedDateTime)
-                : 'Select a date and time'}
-            </Text>
-            <Icon
-              name="calendar-outline"
-              size={20}
-              color={Theme.Colors.neutral.gray600}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Date Picker */}
-        {showDatePicker && (
-          <DateTimePicker
-            value={selectedDateTime || new Date()}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={handleDateChange}
-            minimumDate={new Date()}
-          />
-        )}
-
-        {/* Time Picker */}
-        {showTimePicker && (
-          <DateTimePicker
-            value={selectedDateTime || new Date()}
-            mode="time"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={handleTimeChange}
-          />
-        )}
-
-        {/* Submit Button */}
         <TouchableOpacity
           style={[
             styles.submitButton,
@@ -664,7 +582,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Theme.Spacing.sm,
-    paddingTop: Theme.Spacing.md,
+    paddingTop: Theme.Spacing.xl,
     paddingBottom: Theme.Spacing.md,
   },
   backButton: {
@@ -771,22 +689,6 @@ const styles = StyleSheet.create({
     right: 4,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRadius: 12,
-  },
-  dateTimeInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Theme.Colors.neutral.white,
-    borderRadius: 8,
-    paddingHorizontal: Theme.Spacing.md,
-    paddingVertical: Theme.Spacing.md - 4,
-    borderWidth: 1,
-    borderColor: Theme.Colors.neutral.gray300,
-  },
-  dateTimeText: {
-    fontSize: Theme.Typography.fontSize.md,
-    color: Theme.Colors.neutral.gray900,
-    fontFamily: Theme.Typography.fontFamily.regular,
   },
   placeholderText: {
     color: Theme.Colors.neutral.gray400,

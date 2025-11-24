@@ -73,6 +73,20 @@ class ComplaintService {
     }
   }
 
+  // Submit feedback and close complaint
+  async submitFeedback(complaintId, feedbackData) {
+    try {
+      const response = await api.patch(
+        `/complaints/${complaintId}/feedback`,
+        feedbackData
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Submit feedback error:', error);
+      throw this.handleError(error);
+    }
+  }
+
   // Error handler
   handleError(error) {
     if (error.response) {
