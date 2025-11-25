@@ -78,6 +78,54 @@ class SecureStorage {
     }
   }
 
+  // Store active role
+  async setActiveRole(role) {
+    try {
+      await Keychain.setGenericPassword(
+        'active_role',
+        role,
+        {
+          service: `${KEYCHAIN_SERVICE}.role`,
+          accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED,
+        }
+      );
+      return true;
+    } catch (error) {
+      console.error('Error storing active role:', error);
+      return false;
+    }
+  }
+
+  // Get active role
+  async getActiveRole() {
+    try {
+      const credentials = await Keychain.getGenericPassword({
+        service: `${KEYCHAIN_SERVICE}.role`,
+      });
+      
+      if (credentials) {
+        return credentials.password;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error retrieving active role:', error);
+      return null;
+    }
+  }
+
+  // Clear active role
+  async clearActiveRole() {
+    try {
+      await Keychain.resetGenericPassword({
+        service: `${KEYCHAIN_SERVICE}.role`,
+      });
+      return true;
+    } catch (error) {
+      console.error('Error clearing active role:', error);
+      return false;
+    }
+  }
+
   // Get user data
   async getUserData() {
     try {
@@ -112,6 +160,7 @@ class SecureStorage {
   async clearAll() {
     await this.clearTokens();
     await this.clearUserData();
+    await this.clearActiveRole();
   }
 }
 

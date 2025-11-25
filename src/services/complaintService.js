@@ -87,6 +87,31 @@ class ComplaintService {
     }
   }
 
+  // Get all complaints (Admin)
+  async getAllComplaints() {
+    try {
+      const response = await api.get('/admin/complaints');
+      return response.data;
+    } catch (error) {
+      console.error('Get all complaints error:', error);
+      throw this.handleError(error);
+    }
+  }
+
+  // Update complaint status (Admin)
+  async updateComplaintStatus(complaintId, status) {
+    try {
+      const response = await api.patch(
+        `/admin/complaints/${complaintId}/status`,
+        { status }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Update complaint status error:', error);
+      throw this.handleError(error);
+    }
+  }
+
   // Error handler
   handleError(error) {
     if (error.response) {

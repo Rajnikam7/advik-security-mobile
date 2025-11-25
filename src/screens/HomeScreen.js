@@ -10,12 +10,22 @@ import secureStorage from '../utils/secureStorage';
 
 const HomeScreen = ({ navigation }) => {
   const [userName, setUserName] = useState('User');
+  const [userRoles, setUserRoles] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const loadUserData = async () => {
     try {
       const userData = await secureStorage.getUserData();
-      if (userData && userData.name) {
-        setUserName(userData.name);
+      if (userData) {
+        if (userData.name) {
+          setUserName(userData.name);
+        }
+        if (userData.role && Array.isArray(userData.role)) {
+          setUserRoles(userData.role);
+          // Check if user has admin or employee role
+          const hasAdminAccess = userData.role.includes('super-admin') || userData.role.includes('employee');
+          setIsAdmin(hasAdminAccess);
+        }
       }
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -51,6 +61,10 @@ const HomeScreen = ({ navigation }) => {
 
   const handleProfile = () => {
     navigation.navigate('Profile');
+  };
+
+  const handleAdminComplaints = () => {
+    navigation.navigate('AdminComplaints');
   };
 
   const handleCCTV = () => {
@@ -91,6 +105,20 @@ const HomeScreen = ({ navigation }) => {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
+        {/* Admin Section */}
+        {isAdmin && (
+          <View style={styles.adminSection}>
+            <Text style={styles.adminTitle}>Admin Panel</Text>
+            <ActionCard
+              icon="shield-checkmark-outline"
+              title="Manage Complaints"
+              subtitle="View & update all complaints"
+              onPress={handleAdminComplaints}
+              iconColor="#8B5CF6"
+            />
+          </View>
+        )}
+
         {/* Action Cards Grid */}
         <View style={styles.section}>
           <View style={styles.row}>
@@ -196,6 +224,18 @@ const styles = StyleSheet.create({
   },
   helpCardsContainer: {
     paddingHorizontal: Theme.Spacing.lg,
+  },
+  adminSection: {
+    paddingHorizontal: Theme.Spacing.lg,
+    paddingTop: Theme.Spacing.md,
+    marginBottom: Theme.Spacing.sm,
+  },
+  adminTitle: {
+    fontSize: Theme.Typography.fontSize.lg,
+    fontWeight: Theme.Typography.fontWeight.bold,
+    color: '#8B5CF6',
+    marginBottom: Theme.Spacing.sm,
+    fontFamily: Theme.Typography.fontFamily.bold,
   },
 });
 
