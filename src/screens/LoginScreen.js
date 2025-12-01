@@ -19,6 +19,8 @@ import { validatePhone } from '../utils/validation';
 const TEST_PHONE = '9999999999'; // Test phone number
 const TEST_OTP = '999999'; // Test OTP
 
+const TEST_PHONE2 = '8888888888';
+
 const LoginScreen = ({ navigation }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,7 +42,7 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       // Check if test number
-      if (trimmedNumber === TEST_PHONE) {
+      if (trimmedNumber === TEST_PHONE || TEST_PHONE2) {
         // Test mode - navigate to OTP screen
         Toast.show({
           type: 'info',

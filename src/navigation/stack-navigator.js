@@ -10,6 +10,8 @@ import ComplaintDetailScreen from '../screens/ComplaintDetailScreen';
 import TermsScreen from '../screens/TermsScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import AboutAppScreen from '../screens/AboutAppScreen';
+import AdminDashboardScreen from '../screens/AdminDashboardScreen';
+import AdminUsersScreen from '../screens/AdminUsersScreen';
 import AdminComplaintsScreen from '../screens/AdminComplaintsScreen';
 import TabNavigator from './tab-navigator';
 
@@ -37,6 +39,8 @@ const StackNavigator = () => {
         <Stack.Screen name="Terms" component={TermsScreen} />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
         <Stack.Screen name="AboutApp" component={AboutAppScreen} />
+        <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+        <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
         <Stack.Screen name="AdminComplaints" component={AdminComplaintsScreen} />
       </Stack.Navigator>
     </NavigationContainer>

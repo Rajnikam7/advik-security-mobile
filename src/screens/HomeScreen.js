@@ -10,7 +10,7 @@ import secureStorage from '../utils/secureStorage';
 
 const HomeScreen = ({ navigation }) => {
   const [userName, setUserName] = useState('User');
-  const [userRoles, setUserRoles] = useState([]);
+  const [userRole, setUserRole] = useState('customer');
   const [isAdmin, setIsAdmin] = useState(false);
 
   const loadUserData = async () => {
@@ -20,11 +20,16 @@ const HomeScreen = ({ navigation }) => {
         if (userData.name) {
           setUserName(userData.name);
         }
-        if (userData.role && Array.isArray(userData.role)) {
-          setUserRoles(userData.role);
+        if (userData.role) {
+          setUserRole(userData.role);
           // Check if user has admin or employee role
-          const hasAdminAccess = userData.role.includes('super-admin') || userData.role.includes('employee');
+          const hasAdminAccess = userData.role === 'super-admin' || userData.role === 'employee';
           setIsAdmin(hasAdminAccess);
+          
+          // Redirect admin users to admin dashboard
+          if (hasAdminAccess) {
+            navigation.replace('AdminDashboard');
+          }
         }
       }
     } catch (error) {

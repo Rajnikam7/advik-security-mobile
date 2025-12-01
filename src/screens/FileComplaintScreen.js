@@ -14,10 +14,11 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import Toast from 'react-native-toast-message';
 import { Theme } from '../assets/themes';
 import complaintService from '../services/complaintService';
+import ImagePickerModal from '../components/ImagePickerModal';
 
 const FileComplaintScreen = ({ navigation, route }) => {
   const { 
@@ -28,7 +29,7 @@ const FileComplaintScreen = ({ navigation, route }) => {
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('123 Main St, Anytown');
+  const [location, setLocation] = useState('');
   const [selectedImages, setSelectedImages] = useState([]);
   const [showPriorityModal, setShowPriorityModal] = useState(false);
   const [selectedPriority, setSelectedPriority] = useState(null);
@@ -36,8 +37,44 @@ const FileComplaintScreen = ({ navigation, route }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [complaintId, setComplaintId] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showImagePickerModal, setShowImagePickerModal] = useState(false);
 
   const handleImagePicker = () => {
+    setShowImagePickerModal(true);
+  };
+
+  const handleCameraLaunch = () => {
+    setShowImagePickerModal(false);
+    
+    const options = {
+      mediaType: 'photo',
+      maxWidth: 1024,
+      maxHeight: 1024,
+      quality: 0.8,
+      saveToPhotos: true,
+    };
+
+    setTimeout(() => {
+      launchCamera(options, response => {
+        if (response.didCancel) {
+          console.log('User cancelled camera');
+        } else if (response.errorCode) {
+          Alert.alert('Error', response.errorMessage);
+        } else if (response.assets) {
+          const newImages = response.assets.map(asset => ({
+            uri: asset.uri,
+            type: asset.type,
+            fileName: asset.fileName,
+          }));
+          setSelectedImages([...selectedImages, ...newImages]);
+        }
+      });
+    }, 300);
+  };
+
+  const handleGalleryLaunch = () => {
+    setShowImagePickerModal(false);
+    
     const options = {
       mediaType: 'photo',
       maxWidth: 1024,
@@ -46,20 +83,22 @@ const FileComplaintScreen = ({ navigation, route }) => {
       selectionLimit: 5 - selectedImages.length,
     };
 
-    launchImageLibrary(options, response => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorCode) {
-        Alert.alert('Error', response.errorMessage);
-      } else if (response.assets) {
-        const newImages = response.assets.map(asset => ({
-          uri: asset.uri,
-          type: asset.type,
-          fileName: asset.fileName,
-        }));
-        setSelectedImages([...selectedImages, ...newImages]);
-      }
-    });
+    setTimeout(() => {
+      launchImageLibrary(options, response => {
+        if (response.didCancel) {
+          console.log('User cancelled image picker');
+        } else if (response.errorCode) {
+          Alert.alert('Error', response.errorMessage);
+        } else if (response.assets) {
+          const newImages = response.assets.map(asset => ({
+            uri: asset.uri,
+            type: asset.type,
+            fileName: asset.fileName,
+          }));
+          setSelectedImages([...selectedImages, ...newImages]);
+        }
+      });
+    }, 300);
   };
 
   const handleRemoveImage = index => {
@@ -504,6 +543,14 @@ const FileComplaintScreen = ({ navigation, route }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Image Picker Modal */}
+      <ImagePickerModal
+        visible={showImagePickerModal}
+        onClose={() => setShowImagePickerModal(false)}
+        onCamera={handleCameraLaunch}
+        onGallery={handleGalleryLaunch}
+      />
 
       {/* Success Modal */}
       <Modal
