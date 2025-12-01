@@ -13,6 +13,9 @@ import AboutAppScreen from '../screens/AboutAppScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 import AdminUsersScreen from '../screens/AdminUsersScreen';
 import AdminComplaintsScreen from '../screens/AdminComplaintsScreen';
+import UserDetailScreen from '../screens/UserDetailScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import AdminSettingsScreen from '../screens/AdminSettingsScreen';
 import TabNavigator from './tab-navigator';
 
 const Stack = createNativeStackNavigator();
@@ -42,6 +45,9 @@ const StackNavigator = () => {
         <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
         <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
         <Stack.Screen name="AdminComplaints" component={AdminComplaintsScreen} />
+        <Stack.Screen name="UserDetail" component={UserDetailScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="AdminSettings" component={AdminSettingsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

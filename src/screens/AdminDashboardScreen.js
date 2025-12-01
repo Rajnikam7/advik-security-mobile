@@ -12,12 +12,14 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Theme } from '../assets/themes';
 import adminService from '../services/adminService';
+import secureStorage from '../utils/secureStorage';
 import Toast from 'react-native-toast-message';
 
 const AdminDashboardScreen = ({ navigation }) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
 
   const fetchDashboardStats = async () => {
     try {
@@ -35,8 +37,18 @@ const AdminDashboardScreen = ({ navigation }) => {
     }
   };
 
+  const loadUserInfo = async () => {
+    try {
+      const userData = await secureStorage.getUserData();
+      setUserInfo(userData);
+    } catch (error) {
+      console.error('Error loading user info:', error);
+    }
+  };
+
   useEffect(() => {
     fetchDashboardStats();
+    loadUserInfo();
   }, []);
 
   const onRefresh = useCallback(() => {
@@ -61,20 +73,24 @@ const AdminDashboardScreen = ({ navigation }) => {
     >
       {/* Header */}
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>Admin Dashboard</Text>
-          <Text style={styles.headerSubtitle}>Overview & Management</Text>
+          <Text style={styles.headerSubtitle}>
+            Welcome, {userInfo?.name || 'Administrator'}
+          </Text>
         </View>
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => navigation.navigate('Settings')}
-        >
-          <Icon
-            name="settings-outline"
-            size={24}
-            color={Theme.Colors.neutral.gray900}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('AdminSettings')}
+          >
+            <Icon
+              name="settings-outline"
+              size={24}
+              color={Theme.Colors.neutral.gray900}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -191,6 +207,18 @@ const AdminDashboardScreen = ({ navigation }) => {
               />
               <Text style={styles.actionLabel}>View Complaints</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => navigation.navigate('AdminSettings')}
+            >
+              <Icon
+                name="settings-outline"
+                size={32}
+                color={Theme.Colors.primary.main}
+              />
+              <Text style={styles.actionLabel}>Settings</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -215,6 +243,9 @@ const styles = StyleSheet.create({
     paddingTop: Theme.Spacing.xl,
     paddingBottom: Theme.Spacing.md,
   },
+  headerLeft: {
+    flex: 1,
+  },
   headerTitle: {
     fontSize: Theme.Typography.fontSize.xxl,
     fontWeight: Theme.Typography.fontWeight.bold,
@@ -227,7 +258,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontFamily: Theme.Typography.fontFamily.regular,
   },
-  settingsButton: {
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
@@ -334,10 +369,12 @@ const styles = StyleSheet.create({
   },
   actionsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Theme.Spacing.md,
   },
   actionCard: {
     flex: 1,
+    minWidth: '47%',
     backgroundColor: Theme.Colors.neutral.white,
     borderRadius: 12,
     padding: Theme.Spacing.lg,
