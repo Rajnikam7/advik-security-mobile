@@ -85,7 +85,7 @@ const RegisterEmployeeScreen = ({ navigation }) => {
       const employeeData = {
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
-        phone: formData.phone.trim(),
+        phone: `+91${formData.phone.trim()}`,
       };
 
       await adminService.registerEmployee(employeeData);

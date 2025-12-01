@@ -22,14 +22,17 @@ const HomeScreen = ({ navigation }) => {
         }
         if (userData.role) {
           setUserRole(userData.role);
-          // Check if user has admin or employee role
+          
+          // Role-based navigation
+          if (userData.role === 'super-admin') {
+            navigation.replace('AdminDashboard');
+          } else if (userData.role === 'employee') {
+            navigation.replace('EmployeeDashboard');
+          }
+          
+          // Check if user has admin access for legacy compatibility
           const hasAdminAccess = userData.role === 'super-admin' || userData.role === 'employee';
           setIsAdmin(hasAdminAccess);
-          
-          // Redirect admin users to admin dashboard
-          if (hasAdminAccess) {
-            navigation.replace('AdminDashboard');
-          }
         }
       }
     } catch (error) {

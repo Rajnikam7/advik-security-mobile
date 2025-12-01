@@ -7,25 +7,31 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Theme } from '../assets/themes';
-import complaintService from '../services/complaintService';
+import { Theme } from '../../assets/themes';
+import employeeService from '../../services/employeeService';
 import Toast from 'react-native-toast-message';
 
-const AdminComplaintsScreen = ({ navigation }) => {
+const EmployeeComplaintsScreen = ({ navigation, route }) => {
+  const { filter } = route.params || {};
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState(filter || '');
 
-  const fetchComplaints = async (isRefresh = false) => {
+  const filterOptions = [
+    { value: '', label: 'All', color: Theme.Colors.neutral.gray600 },
+    { value: 'Assigned', label: 'New', color: '#8B5CF6' },
+    { value: 'InProgress', label: 'In Progress', color: '#F59E0B' },
+    { value: 'Resolved', label: 'Resolved', color: '#10B981' },
+  ];
+
+  const fetchComplaints = async () => {
     try {
-      if (isRefresh) {
-        setRefreshing(true);
-      }
-      const response = await complaintService.getAllComplaints();
+      const response = await employeeService.getAssignedComplaints(selectedFilter);
       setComplaints(response.data);
     } catch (error) {
       Toast.show({
@@ -39,68 +45,32 @@ const AdminComplaintsScreen = ({ navigation }) => {
     }
   };
 
-  const onRefresh = useCallback(() => {
-    fetchComplaints(true);
-  }, []);
-
   useEffect(() => {
     fetchComplaints();
-  }, []);
+  }, [selectedFilter]);
 
-  // Refresh data when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      if (!loading) {
-        fetchComplaints(true);
-      }
-    }, [loading])
-  );
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchComplaints();
+  }, [selectedFilter]);
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Open':
-        return '#3B82F6';
+      case 'Assigned':
+        return '#8B5CF6';
       case 'InProgress':
         return '#F59E0B';
       case 'Resolved':
         return '#10B981';
-      case 'Closed':
-        return Theme.Colors.neutral.gray500;
       default:
         return Theme.Colors.neutral.gray400;
-    }
-  };
-
-  const getPaymentStatusColor = (paymentStatus) => {
-    switch (paymentStatus) {
-      case 'success':
-        return '#10B981';
-      case 'pending':
-        return '#F59E0B';
-      case 'failed':
-        return '#EF4444';
-      default:
-        return Theme.Colors.neutral.gray400;
-    }
-  };
-
-  const getPaymentStatusText = (paymentStatus) => {
-    switch (paymentStatus) {
-      case 'success':
-        return 'Paid';
-      case 'pending':
-        return 'Pending';
-      case 'failed':
-        return 'Failed';
-      default:
-        return 'Unknown';
     }
   };
 
   const renderComplaint = ({ item }) => (
     <TouchableOpacity
       style={styles.complaintCard}
-      onPress={() => navigation.navigate('AdminComplaintDetail', { complaintId: item._id })}
+      onPress={() => navigation.navigate('EmployeeComplaintDetail', { complaintId: item._id })}
     >
       <View style={styles.complaintHeader}>
         <Text style={styles.complaintId}>#{item._id.slice(-8).toUpperCase()}</Text>
@@ -108,41 +78,28 @@ const AdminComplaintsScreen = ({ navigation }) => {
           <Text style={styles.statusText}>{item.status}</Text>
         </View>
       </View>
+      
       <Text style={styles.complaintTitle}>{item.subject}</Text>
       <Text style={styles.complaintDescription} numberOfLines={2}>
         {item.description}
       </Text>
       
-      {/* Complaint Info Row */}
       <View style={styles.complaintInfo}>
         <View style={styles.infoItem}>
-          <Icon name="card-outline" size={16} color={Theme.Colors.neutral.gray500} />
-          <Text style={styles.infoLabel}>Payment:</Text>
-          <View style={[
-            styles.paymentBadge,
-            { backgroundColor: getPaymentStatusColor(item.paymentStatus) }
-          ]}>
-            <Text style={styles.paymentText}>{getPaymentStatusText(item.paymentStatus)}</Text>
-          </View>
+          <Icon name="business-outline" size={16} color={Theme.Colors.neutral.gray500} />
+          <Text style={styles.infoText}>{item.serviceType?.serviceName}</Text>
         </View>
-        
-        {item.assignedTo && (
-          <View style={styles.infoItem}>
-            <Icon name="person-outline" size={16} color={Theme.Colors.neutral.gray500} />
-            <Text style={styles.infoLabel}>Assigned:</Text>
-            <Text style={styles.assignedText}>{item.assignedTo.name}</Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.complaintFooter}>
-        <View style={styles.customerInfo}>
+        <View style={styles.infoItem}>
           <Icon name="person-outline" size={16} color={Theme.Colors.neutral.gray500} />
-          <Text style={styles.customerName}>{item.customerId?.name || 'Unknown'}</Text>
+          <Text style={styles.infoText}>{item.customerId?.name || 'Unknown'}</Text>
         </View>
+      </View>
+      
+      <View style={styles.complaintFooter}>
         <Text style={styles.complaintDate}>
-          {new Date(item.createdAt).toLocaleDateString()}
+          Assigned: {new Date(item.createdAt).toLocaleDateString()}
         </Text>
+        <Icon name="chevron-forward" size={20} color={Theme.Colors.neutral.gray400} />
       </View>
     </TouchableOpacity>
   );
@@ -162,6 +119,7 @@ const AdminComplaintsScreen = ({ navigation }) => {
       end={{ x: 0, y: 0 }}
       style={styles.container}
     >
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -169,10 +127,38 @@ const AdminComplaintsScreen = ({ navigation }) => {
         >
           <Icon name="arrow-back" size={24} color={Theme.Colors.neutral.gray900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>All Complaints ({complaints.length})</Text>
+        <Text style={styles.headerTitle}>My Complaints ({complaints.length})</Text>
         <View style={styles.placeholder} />
       </View>
 
+      {/* Filter Tabs */}
+      <View style={styles.filterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.filterTabs}>
+            {filterOptions.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.filterTab,
+                  selectedFilter === option.value && styles.activeFilterTab,
+                ]}
+                onPress={() => setSelectedFilter(option.value)}
+              >
+                <Text
+                  style={[
+                    styles.filterTabText,
+                    selectedFilter === option.value && styles.activeFilterTabText,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+
+      {/* Complaints List */}
       <FlatList
         data={complaints}
         renderItem={renderComplaint}
@@ -180,13 +166,20 @@ const AdminComplaintsScreen = ({ navigation }) => {
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[Theme.Colors.primary.main]}
-            tintColor={Theme.Colors.primary.main}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        ListEmptyComponent={() => (
+          <View style={styles.emptyState}>
+            <Icon name="briefcase-outline" size={64} color={Theme.Colors.neutral.gray400} />
+            <Text style={styles.emptyTitle}>No Complaints Found</Text>
+            <Text style={styles.emptyText}>
+              {selectedFilter 
+                ? `No complaints with status "${filterOptions.find(f => f.value === selectedFilter)?.label}"`
+                : 'No complaints assigned to you yet'
+              }
+            </Text>
+          </View>
+        )}
       />
     </LinearGradient>
   );
@@ -223,6 +216,31 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 40,
+  },
+  filterContainer: {
+    paddingHorizontal: Theme.Spacing.md,
+    marginBottom: Theme.Spacing.md,
+  },
+  filterTabs: {
+    flexDirection: 'row',
+    gap: Theme.Spacing.sm,
+  },
+  filterTab: {
+    paddingHorizontal: Theme.Spacing.md,
+    paddingVertical: Theme.Spacing.sm,
+    borderRadius: 20,
+    backgroundColor: Theme.Colors.neutral.gray100,
+  },
+  activeFilterTab: {
+    backgroundColor: Theme.Colors.primary.main,
+  },
+  filterTabText: {
+    fontSize: Theme.Typography.fontSize.sm,
+    color: Theme.Colors.neutral.gray600,
+    fontFamily: Theme.Typography.fontFamily.semibold,
+  },
+  activeFilterTabText: {
+    color: Theme.Colors.neutral.white,
   },
   listContainer: {
     paddingHorizontal: Theme.Spacing.md,
@@ -282,31 +300,12 @@ const styles = StyleSheet.create({
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Theme.Spacing.xs,
   },
-  infoLabel: {
-    fontSize: Theme.Typography.fontSize.xs,
-    color: Theme.Colors.neutral.gray500,
+  infoText: {
+    fontSize: Theme.Typography.fontSize.sm,
+    color: Theme.Colors.neutral.gray600,
     fontFamily: Theme.Typography.fontFamily.regular,
-    marginLeft: 4,
-    marginRight: Theme.Spacing.xs,
-  },
-  paymentBadge: {
-    paddingHorizontal: Theme.Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  paymentText: {
-    fontSize: Theme.Typography.fontSize.xs,
-    fontWeight: Theme.Typography.fontWeight.bold,
-    color: Theme.Colors.neutral.white,
-    fontFamily: Theme.Typography.fontFamily.bold,
-  },
-  assignedText: {
-    fontSize: Theme.Typography.fontSize.xs,
-    color: Theme.Colors.primary.main,
-    fontFamily: Theme.Typography.fontFamily.semibold,
-    fontWeight: Theme.Typography.fontWeight.semibold,
+    marginLeft: Theme.Spacing.xs,
   },
   complaintFooter: {
     flexDirection: 'row',
@@ -317,22 +316,30 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Theme.Colors.neutral.gray100,
   },
-  customerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  customerName: {
-    fontSize: Theme.Typography.fontSize.sm,
-    color: Theme.Colors.neutral.gray600,
-    fontFamily: Theme.Typography.fontFamily.regular,
-    marginLeft: 4,
-  },
   complaintDate: {
     fontSize: Theme.Typography.fontSize.xs,
     color: Theme.Colors.neutral.gray500,
     fontFamily: Theme.Typography.fontFamily.regular,
   },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: Theme.Spacing.xxl,
+  },
+  emptyTitle: {
+    fontSize: Theme.Typography.fontSize.lg,
+    fontWeight: Theme.Typography.fontWeight.bold,
+    color: Theme.Colors.neutral.gray600,
+    fontFamily: Theme.Typography.fontFamily.bold,
+    marginTop: Theme.Spacing.md,
+    marginBottom: Theme.Spacing.sm,
+  },
+  emptyText: {
+    fontSize: Theme.Typography.fontSize.sm,
+    color: Theme.Colors.neutral.gray500,
+    fontFamily: Theme.Typography.fontFamily.regular,
+    textAlign: 'center',
+    paddingHorizontal: Theme.Spacing.lg,
+  },
 });
 
-export default AdminComplaintsScreen;
+export default EmployeeComplaintsScreen;

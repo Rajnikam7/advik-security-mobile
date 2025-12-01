@@ -18,6 +18,10 @@ import UserDetailScreen from '../screens/UserDetailScreen';
 import RegisterEmployeeScreen from '../screens/RegisterEmployeeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AdminSettingsScreen from '../screens/AdminSettingsScreen';
+import EmployeeDashboardScreen from '../screens/employee/EmployeeDashboardScreen';
+import EmployeeComplaintsScreen from '../screens/employee/EmployeeComplaintsScreen';
+import EmployeeComplaintDetailScreen from '../screens/employee/EmployeeComplaintDetailScreen';
+import EmployeeSettingsScreen from '../screens/employee/EmployeeSettingsScreen';
 import TabNavigator from './tab-navigator';
 
 const Stack = createNativeStackNavigator();
@@ -52,6 +56,10 @@ const StackNavigator = () => {
         <Stack.Screen name="RegisterEmployee" component={RegisterEmployeeScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="AdminSettings" component={AdminSettingsScreen} />
+        <Stack.Screen name="EmployeeDashboard" component={EmployeeDashboardScreen} />
+        <Stack.Screen name="EmployeeComplaints" component={EmployeeComplaintsScreen} />
+        <Stack.Screen name="EmployeeComplaintDetail" component={EmployeeComplaintDetailScreen} />
+        <Stack.Screen name="EmployeeSettings" component={EmployeeSettingsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
