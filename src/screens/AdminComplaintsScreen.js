@@ -51,10 +51,36 @@ const AdminComplaintsScreen = ({ navigation }) => {
     }
   };
 
+  const getPaymentStatusColor = (paymentStatus) => {
+    switch (paymentStatus) {
+      case 'success':
+        return '#10B981';
+      case 'pending':
+        return '#F59E0B';
+      case 'failed':
+        return '#EF4444';
+      default:
+        return Theme.Colors.neutral.gray400;
+    }
+  };
+
+  const getPaymentStatusText = (paymentStatus) => {
+    switch (paymentStatus) {
+      case 'success':
+        return 'Paid';
+      case 'pending':
+        return 'Pending';
+      case 'failed':
+        return 'Failed';
+      default:
+        return 'Unknown';
+    }
+  };
+
   const renderComplaint = ({ item }) => (
     <TouchableOpacity
       style={styles.complaintCard}
-      onPress={() => navigation.navigate('ComplaintDetail', { complaintId: item._id })}
+      onPress={() => navigation.navigate('AdminComplaintDetail', { complaintId: item._id })}
     >
       <View style={styles.complaintHeader}>
         <Text style={styles.complaintId}>#{item._id.slice(-8).toUpperCase()}</Text>
@@ -66,6 +92,29 @@ const AdminComplaintsScreen = ({ navigation }) => {
       <Text style={styles.complaintDescription} numberOfLines={2}>
         {item.description}
       </Text>
+      
+      {/* Complaint Info Row */}
+      <View style={styles.complaintInfo}>
+        <View style={styles.infoItem}>
+          <Icon name="card-outline" size={16} color={Theme.Colors.neutral.gray500} />
+          <Text style={styles.infoLabel}>Payment:</Text>
+          <View style={[
+            styles.paymentBadge,
+            { backgroundColor: getPaymentStatusColor(item.paymentStatus) }
+          ]}>
+            <Text style={styles.paymentText}>{getPaymentStatusText(item.paymentStatus)}</Text>
+          </View>
+        </View>
+        
+        {item.assignedTo && (
+          <View style={styles.infoItem}>
+            <Icon name="person-outline" size={16} color={Theme.Colors.neutral.gray500} />
+            <Text style={styles.infoLabel}>Assigned:</Text>
+            <Text style={styles.assignedText}>{item.assignedTo.name}</Text>
+          </View>
+        )}
+      </View>
+
       <View style={styles.complaintFooter}>
         <View style={styles.customerInfo}>
           <Icon name="person-outline" size={16} color={Theme.Colors.neutral.gray500} />
@@ -196,16 +245,54 @@ const styles = StyleSheet.create({
     fontSize: Theme.Typography.fontSize.sm,
     color: Theme.Colors.neutral.gray600,
     fontFamily: Theme.Typography.fontFamily.regular,
+    marginBottom: Theme.Spacing.md,
+  },
+  complaintInfo: {
     marginBottom: Theme.Spacing.sm,
+    gap: Theme.Spacing.xs,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Theme.Spacing.xs,
+  },
+  infoLabel: {
+    fontSize: Theme.Typography.fontSize.xs,
+    color: Theme.Colors.neutral.gray500,
+    fontFamily: Theme.Typography.fontFamily.regular,
+    marginLeft: 4,
+    marginRight: Theme.Spacing.xs,
+  },
+  paymentBadge: {
+    paddingHorizontal: Theme.Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  paymentText: {
+    fontSize: Theme.Typography.fontSize.xs,
+    fontWeight: Theme.Typography.fontWeight.bold,
+    color: Theme.Colors.neutral.white,
+    fontFamily: Theme.Typography.fontFamily.bold,
+  },
+  assignedText: {
+    fontSize: Theme.Typography.fontSize.xs,
+    color: Theme.Colors.primary.main,
+    fontFamily: Theme.Typography.fontFamily.semibold,
+    fontWeight: Theme.Typography.fontWeight.semibold,
   },
   complaintFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: Theme.Spacing.xs,
+    paddingTop: Theme.Spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: Theme.Colors.neutral.gray100,
   },
   customerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   customerName: {
     fontSize: Theme.Typography.fontSize.sm,

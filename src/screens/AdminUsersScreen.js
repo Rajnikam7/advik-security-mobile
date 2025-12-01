@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  RefreshControl,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -17,6 +18,7 @@ import Toast from 'react-native-toast-message';
 const AdminUsersScreen = ({ navigation }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [filterRole, setFilterRole] = useState('');
 
@@ -32,12 +34,27 @@ const AdminUsersScreen = ({ navigation }) => {
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchUsers();
+  }, [search, filterRole]);
 
   useEffect(() => {
     fetchUsers();
   }, [search, filterRole]);
+
+  // Listen for navigation focus to refresh data
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchUsers();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const getRoleBadgeColor = (role) => {
     switch (role) {
@@ -92,7 +109,12 @@ const AdminUsersScreen = ({ navigation }) => {
           <Icon name="arrow-back" size={24} color={Theme.Colors.neutral.gray900} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Users ({users.length})</Text>
-        <View style={styles.placeholder} />
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => navigation.navigate('RegisterEmployee')}
+        >
+          <Icon name="person-add" size={24} color={Theme.Colors.primary.main} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
@@ -112,6 +134,9 @@ const AdminUsersScreen = ({ navigation }) => {
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
     </LinearGradient>
   );
@@ -146,8 +171,11 @@ const styles = StyleSheet.create({
     color: Theme.Colors.neutral.gray900,
     fontFamily: Theme.Typography.fontFamily.bold,
   },
-  placeholder: {
+  addButton: {
     width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchContainer: {
     flexDirection: 'row',

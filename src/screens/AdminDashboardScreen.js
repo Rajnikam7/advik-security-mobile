@@ -208,7 +208,7 @@ const AdminDashboardScreen = ({ navigation }) => {
               <Text style={styles.actionLabel}>View Complaints</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.actionCard}
               onPress={() => navigation.navigate('AdminSettings')}
             >
@@ -218,7 +218,7 @@ const AdminDashboardScreen = ({ navigation }) => {
                 color={Theme.Colors.primary.main}
               />
               <Text style={styles.actionLabel}>Settings</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
       </ScrollView>

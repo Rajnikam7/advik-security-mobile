@@ -13,7 +13,9 @@ import AboutAppScreen from '../screens/AboutAppScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 import AdminUsersScreen from '../screens/AdminUsersScreen';
 import AdminComplaintsScreen from '../screens/AdminComplaintsScreen';
+import AdminComplaintDetailScreen from '../screens/AdminComplaintDetailScreen';
 import UserDetailScreen from '../screens/UserDetailScreen';
+import RegisterEmployeeScreen from '../screens/RegisterEmployeeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AdminSettingsScreen from '../screens/AdminSettingsScreen';
 import TabNavigator from './tab-navigator';
@@ -45,7 +47,9 @@ const StackNavigator = () => {
         <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
         <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
         <Stack.Screen name="AdminComplaints" component={AdminComplaintsScreen} />
+        <Stack.Screen name="AdminComplaintDetail" component={AdminComplaintDetailScreen} />
         <Stack.Screen name="UserDetail" component={UserDetailScreen} />
+        <Stack.Screen name="RegisterEmployee" component={RegisterEmployeeScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="AdminSettings" component={AdminSettingsScreen} />
       </Stack.Navigator>
