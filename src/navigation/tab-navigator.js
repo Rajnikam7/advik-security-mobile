@@ -6,6 +6,7 @@ import { Theme } from '../assets/themes';
 import HomeScreen from '../screens/HomeScreen';
 import ComplaintsStack from './complaints-stack';
 import ProfileStack from './profile-stack';
+import ProductsScreen from '../screens/ProductsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -45,6 +46,15 @@ const TabNavigator = () => {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="chatbubbles-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Products"
+        component={ProductsScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="cube-outline" size={size} color={color} />
           ),
         }}
       />
