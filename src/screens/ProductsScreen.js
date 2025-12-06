@@ -126,29 +126,23 @@ const ProductsScreen = ({ navigation }) => {
   );
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[Theme.Colors.primary.main, Theme.Colors.primary.dark]}
-        style={styles.header}
-      >
+    <LinearGradient
+      colors={[Theme.Colors.neutral.white, Theme.Colors.background.light]}
+      start={{ x: 0, y: 1 }}
+      end={{ x: 0, y: 0 }}
+      style={styles.container}
+    >
+      <View style={styles.header}>
         <View style={styles.headerContent}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Icon name="arrow-back" size={24} color={Theme.Colors.neutral.white} />
+            <Icon name="arrow-back" size={24} color={Theme.Colors.primary.main} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Catalog</Text>
-          {/* <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerIcon}>
-              <Icon name="cart-outline" size={24} color={Theme.Colors.neutral.white} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerIcon}>
-              <Icon name="link-outline" size={24} color={Theme.Colors.neutral.white} />
-            </TouchableOpacity>
-          </View> */}
+          <Text style={styles.headerTitle}>Products</Text>
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView
         style={styles.scrollView}
@@ -180,14 +174,13 @@ const ProductsScreen = ({ navigation }) => {
           <Text style={styles.floatingButtonText}>Enquiry Now</Text>
         </LinearGradient>
       </TouchableOpacity>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.Colors.neutral.gray900,
   },
   header: {
     paddingTop: 50,
@@ -197,25 +190,17 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
-    fontSize: Theme.Typography.fontSize.xl,
+    fontSize: Theme.Typography.fontSize.xxl,
     fontWeight: Theme.Typography.fontWeight.bold,
-    color: Theme.Colors.neutral.white,
+    color: Theme.Colors.text.primary,
     fontFamily: Theme.Typography.fontFamily.bold,
     flex: 1,
     marginLeft: Theme.Spacing.md,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: Theme.Spacing.sm,
-  },
-  headerIcon: {
-    padding: 8,
   },
   scrollView: {
     flex: 1,
@@ -225,12 +210,17 @@ const styles = StyleSheet.create({
   },
   productCard: {
     flexDirection: 'row',
-    backgroundColor: Theme.Colors.neutral.gray800,
+    backgroundColor: Theme.Colors.neutral.white,
     marginHorizontal: Theme.Spacing.md,
     marginTop: Theme.Spacing.md,
     borderRadius: 12,
     padding: Theme.Spacing.md,
     alignItems: 'center',
+    shadowColor: Theme.Colors.shadow.light,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   productIconContainer: {
     width: 70,
@@ -246,20 +236,20 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: Theme.Typography.fontSize.md,
     fontWeight: Theme.Typography.fontWeight.semibold,
-    color: Theme.Colors.neutral.white,
+    color: Theme.Colors.text.primary,
     fontFamily: Theme.Typography.fontFamily.semibold,
     marginBottom: 4,
   },
   productSubtitle: {
     fontSize: Theme.Typography.fontSize.sm,
-    color: Theme.Colors.neutral.gray400,
+    color: Theme.Colors.text.muted,
     fontFamily: Theme.Typography.fontFamily.regular,
     marginBottom: 4,
   },
   productStatus: {
     fontSize: Theme.Typography.fontSize.sm,
-    color: Theme.Colors.neutral.gray400,
-    fontFamily: Theme.Typography.fontFamily.regular,
+    color: Theme.Colors.primary.main,
+    fontFamily: Theme.Typography.fontFamily.medium,
     marginBottom: 4,
   },
   priceContainer: {
@@ -270,7 +260,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: Theme.Typography.fontSize.md,
     fontWeight: Theme.Typography.fontWeight.bold,
-    color: Theme.Colors.neutral.white,
+    color: Theme.Colors.primary.main,
     fontFamily: Theme.Typography.fontFamily.bold,
   },
   originalPrice: {
@@ -285,7 +275,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: Theme.Typography.fontSize.sm,
-    color: Theme.Colors.neutral.gray400,
+    color: Theme.Colors.text.muted,
     textAlign: 'center',
     fontFamily: Theme.Typography.fontFamily.regular,
   },

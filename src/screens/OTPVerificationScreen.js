@@ -91,7 +91,15 @@ const OTPVerificationScreen = ({ navigation, route }) => {
 
       // Check if profile is complete
       if (response.user.isProfileComplete) {
-        navigation.replace('Main');
+        // Navigate based on user role
+        const user = response.user;
+        if (user.role === 'super-admin') {
+          navigation.replace('AdminDashboard');
+        } else if (user.role === 'employee') {
+          navigation.replace('EmployeeDashboard');
+        } else {
+          navigation.replace('Main');
+        }
       } else {
         navigation.replace('Register');
       }

@@ -33,9 +33,17 @@ const FlashScreen = ({ navigation }) => {
           token: 'stored_in_keychain', // Token is in secure storage
         }));
 
-        // Navigate based on profile completion
+        // Navigate based on profile completion and role
         if (authResult.isProfileComplete) {
-          navigation.replace('Main');
+          // Navigate based on user role
+          const user = authResult.user;
+          if (user.role === 'super-admin') {
+            navigation.replace('AdminDashboard');
+          } else if (user.role === 'employee') {
+            navigation.replace('EmployeeDashboard');
+          } else {
+            navigation.replace('Main');
+          }
         } else {
           navigation.replace('Register');
         }

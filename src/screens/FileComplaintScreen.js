@@ -108,6 +108,10 @@ const FileComplaintScreen = ({ navigation, route }) => {
 
   const handleSubmit = () => {
     if (isFormValid) {
+      // Set first priority as default if not already selected
+      if (!selectedPriority && servicePriorities.length > 0) {
+        setSelectedPriority(servicePriorities[0]._id);
+      }
       setShowPriorityModal(true);
     }
   };
@@ -123,10 +127,18 @@ const FileComplaintScreen = ({ navigation, route }) => {
     }
   };
 
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setLocation('');
+    setSelectedImages([]);
+    setSelectedPriority(null);
+    setComplaintId('');
+  };
+
   const handleProceedToPayment = async () => {
     try {
       setSubmitting(true);
-      setShowSummaryModal(false);
 
       const priorityDetails = getPriorityDetails();
       if (!priorityDetails) {
@@ -135,6 +147,7 @@ const FileComplaintScreen = ({ navigation, route }) => {
           text1: 'Error',
           text2: 'Invalid priority selected',
         });
+        setSubmitting(false);
         return;
       }
 
@@ -158,6 +171,7 @@ const FileComplaintScreen = ({ navigation, route }) => {
           text2: 'Complaint created successfully',
         });
 
+        setShowSummaryModal(false);
         setTimeout(() => setShowSuccessModal(true), 300);
       }
     } catch (error) {
@@ -174,6 +188,7 @@ const FileComplaintScreen = ({ navigation, route }) => {
 
   const handleTrackComplaint = () => {
     setShowSuccessModal(false);
+    resetForm();
     navigation.navigate('Complaints', {
       screen: 'ComplaintsList',
     });
@@ -181,6 +196,7 @@ const FileComplaintScreen = ({ navigation, route }) => {
 
   const handleBackToHome = () => {
     setShowSuccessModal(false);
+    resetForm();
     navigation.navigate('Home');
   };
 
@@ -266,11 +282,11 @@ const FileComplaintScreen = ({ navigation, route }) => {
               placeholder="Enter location"
               placeholderTextColor={Theme.Colors.neutral.gray400}
             />
-            <Icon
+            {/* <Icon
               name="checkmark-circle"
               size={24}
               color={Theme.Colors.primary.main}
-            />
+            /> */}
           </View>
         </View>
 
@@ -352,47 +368,50 @@ const FileComplaintScreen = ({ navigation, route }) => {
 
               {/* Dynamic Priority Options */}
               {servicePriorities.length > 0 ? (
-                servicePriorities.map((priority, index) => (
-                  <TouchableOpacity
-                    key={priority._id}
-                    style={[
-                      styles.priorityOption,
-                      index > 0 && styles.standardOption,
-                      selectedPriority === priority._id && 
-                        (index === servicePriorities.length - 1 ? styles.prioritySelected : styles.standardSelected),
-                    ]}
-                    onPress={() => handlePrioritySelect(priority._id)}
-                  >
-                    <View style={styles.priorityLeft}>
-                      <View style={styles.priorityTitleRow}>
-                        <Text style={styles.priorityTitle}>
-                          {priority.servicePriority} Service
+                servicePriorities.map((priority, index) => {
+                  const isSelected = selectedPriority === priority._id;
+                  const isLastItem = index === servicePriorities.length - 1;
+                  
+                  return (
+                    <TouchableOpacity
+                      key={priority._id}
+                      style={[
+                        styles.priorityOption,
+                        isSelected && styles.prioritySelected,
+                      ]}
+                      onPress={() => handlePrioritySelect(priority._id)}
+                    >
+                      <View style={styles.priorityLeft}>
+                        <View style={styles.priorityTitleRow}>
+                          <Text style={styles.priorityTitle}>
+                            {priority.servicePriority} Service
+                          </Text>
+                          {isLastItem && (
+                            <View style={styles.fastestBadge}>
+                              <Text style={styles.fastestText}>Fastest</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.prioritySubtitle}>
+                          Response within {getResponseTime(priority.servicePriority)}
                         </Text>
-                        {index === servicePriorities.length - 1 && (
-                          <View style={styles.fastestBadge}>
-                            <Text style={styles.fastestText}>Fastest</Text>
-                          </View>
-                        )}
                       </View>
-                      <Text style={styles.prioritySubtitle}>
-                        Response within {getResponseTime(priority.servicePriority)}
-                      </Text>
-                    </View>
-                    <View style={styles.priorityRight}>
-                      <Text style={styles.priorityPrice}>₹{priority.pricing}</Text>
-                      <View
-                        style={[
-                          index === servicePriorities.length - 1 ? styles.radioButton : styles.radioButtonOutline,
-                          selectedPriority === priority._id && styles.radioButtonSelected,
-                        ]}
-                      >
-                        {selectedPriority === priority._id && (
-                          <View style={styles.radioButtonInner} />
-                        )}
+                      <View style={styles.priorityRight}>
+                        <Text style={styles.priorityPrice}>₹{priority.pricing}</Text>
+                        <View
+                          style={[
+                            styles.radioButtonOutline,
+                            isSelected && styles.radioButtonSelected,
+                          ]}
+                        >
+                          {isSelected && (
+                            <View style={styles.radioButtonInner} />
+                          )}
+                        </View>
                       </View>
-                    </View>
-                  </TouchableOpacity>
-                ))
+                    </TouchableOpacity>
+                  );
+                })
               ) : (
                 <View style={styles.noPrioritiesContainer}>
                   <Text style={styles.noPrioritiesText}>
@@ -803,15 +822,12 @@ const styles = StyleSheet.create({
     padding: Theme.Spacing.lg,
     marginBottom: Theme.Spacing.md,
     borderWidth: 2,
-    borderColor: '#FFB84D',
+    borderColor: Theme.Colors.neutral.gray300,
     shadowColor: Theme.Colors.neutral.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
-  },
-  standardOption: {
-    borderColor: Theme.Colors.neutral.gray300,
   },
   priorityLeft: {
     flex: 1,
@@ -855,35 +871,25 @@ const styles = StyleSheet.create({
     marginBottom: Theme.Spacing.xs,
     fontFamily: Theme.Typography.fontFamily.bold,
   },
-  radioButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#FFB84D',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioButtonInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FFB84D',
-  },
   radioButtonOutline: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: Theme.Colors.neutral.gray300,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   radioButtonSelected: {
-    borderColor: '#FFB84D',
+    borderColor: Theme.Colors.primary.main,
+  },
+  radioButtonInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Theme.Colors.primary.main,
   },
   prioritySelected: {
-    borderColor: '#FFB84D',
-  },
-  standardSelected: {
     borderColor: Theme.Colors.primary.main,
   },
   reviewButton: {

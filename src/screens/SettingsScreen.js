@@ -21,19 +21,19 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   const settingsSections = [
-    {
-      title: 'Notifications',
-      items: [
-        {
-          id: 'push',
-          label: 'Push Notifications',
-          subtitle: 'Receive app notifications',
-          type: 'switch',
-          value: pushNotifications,
-          onValueChange: setPushNotifications,
-        },
-      ],
-    },
+    // {
+    //   title: 'Notifications',
+    //   items: [
+    //     {
+    //       id: 'push',
+    //       label: 'Push Notifications',
+    //       subtitle: 'Receive app notifications',
+    //       type: 'switch',
+    //       value: pushNotifications,
+    //       onValueChange: setPushNotifications,
+    //     },
+    //   ],
+    // },
 
     {
       title: 'About',
