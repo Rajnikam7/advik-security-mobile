@@ -7,18 +7,21 @@ class AuthService {
   async testLogin(phoneNo, otp) {
     try {
       console.log('Calling test login API:', { phone: phoneNo, otp });
-      const response = await api.post('/auth/test-login', { 
-        phone: phoneNo, 
-        otp 
+      const response = await api.post('/auth/test-login', {
+        phone: phoneNo,
+        otp,
       });
-      
+
       console.log('Test login response:', response.data);
-      
+
       if (response.data.token && response.data.refreshToken) {
-        await secureStorage.setTokens(response.data.token, response.data.refreshToken);
+        await secureStorage.setTokens(
+          response.data.token,
+          response.data.refreshToken,
+        );
         await secureStorage.setUserData(response.data.user);
       }
-      
+
       return response.data;
     } catch (error) {
       console.error('Test login error:', error);
@@ -42,20 +45,23 @@ class AuthService {
     try {
       // Confirm OTP with Firebase
       const userCredential = await confirmation.confirm(otp);
-      
+
       // Get Firebase ID token
       const firebaseToken = await userCredential.user.getIdToken();
-      
+
       // Verify with backend
       const response = await api.post('/auth/verify-or-create', {
         firebaseToken,
       });
-      
+
       if (response.data.token && response.data.refreshToken) {
-        await secureStorage.setTokens(response.data.token, response.data.refreshToken);
+        await secureStorage.setTokens(
+          response.data.token,
+          response.data.refreshToken,
+        );
         await secureStorage.setUserData(response.data.user);
       }
-      
+
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -67,11 +73,14 @@ class AuthService {
     try {
       console.log('Calling register API:', { name, email });
       const response = await api.patch('/auth/register', { name, email });
-      
+
       console.log('Register response:', response.data);
-      
+
       if (response.data.token && response.data.refreshToken) {
-        await secureStorage.setTokens(response.data.token, response.data.refreshToken);
+        await secureStorage.setTokens(
+          response.data.token,
+          response.data.refreshToken,
+        );
         await secureStorage.setUserData(response.data.user);
       }
       return response.data;
@@ -99,9 +108,9 @@ class AuthService {
     try {
       console.log('Calling update profile API:', profileData);
       const response = await api.patch('/profile', profileData);
-      
+
       console.log('Update profile response:', response.data);
-      
+
       if (response.data?.data?.user) {
         await secureStorage.setUserData(response.data.data.user);
       }
@@ -174,7 +183,7 @@ class AuthService {
   async logout() {
     try {
       await secureStorage.clearAll();
-      
+
       // Sign out from Firebase if available
       try {
         if (auth().currentUser) {

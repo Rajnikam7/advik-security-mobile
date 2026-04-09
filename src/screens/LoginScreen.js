@@ -16,8 +16,8 @@ import { Theme } from '../assets/themes';
 import authService from '../services/authService';
 import { validatePhone } from '../utils/validation';
 
-const TEST_PHONE = '9999999999'; // Test phone number
-const TEST_OTP = '999999'; // Test OTP
+const TEST_PHONE = '9999999999';
+const TEST_OTP = '999999';
 
 const TEST_PHONE2 = '8888888888';
 
@@ -28,9 +28,9 @@ const LoginScreen = ({ navigation }) => {
 
   const handleSendOTP = async () => {
     setError('');
-    
+
     const trimmedNumber = phoneNumber.trim();
-    
+
     // Validate phone number
     const validation = validatePhone(trimmedNumber);
     if (!validation.isValid) {
@@ -49,21 +49,20 @@ const LoginScreen = ({ navigation }) => {
           text1: 'Test Mode',
           text2: `Use OTP: ${TEST_OTP}`,
         });
-        navigation.navigate('OTPVerification', { 
+        navigation.navigate('OTPVerification', {
           phoneNumber: trimmedNumber,
           testMode: true,
         });
       } else {
-        // Firebase mode - send OTP
         const confirmation = await authService.sendOTP(trimmedNumber);
-        
+
         Toast.show({
           type: 'success',
           text1: 'Success',
           text2: 'OTP sent successfully',
         });
-        
-        navigation.navigate('OTPVerification', { 
+
+        navigation.navigate('OTPVerification', {
           phoneNumber: trimmedNumber,
           confirmation,
           testMode: false,
@@ -71,7 +70,8 @@ const LoginScreen = ({ navigation }) => {
       }
     } catch (err) {
       console.log('Send OTP error:', err);
-      const errorMessage = err.message || 'Failed to send OTP. Please try again.';
+      const errorMessage =
+        err.message || 'Failed to send OTP. Please try again.';
       setError(errorMessage);
       Toast.show({
         type: 'error',
@@ -143,7 +143,8 @@ const LoginScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.sendButton,
-              (phoneNumber.length !== 10 || loading) && styles.sendButtonDisabled,
+              (phoneNumber.length !== 10 || loading) &&
+                styles.sendButtonDisabled,
             ]}
             onPress={handleSendOTP}
             disabled={phoneNumber.length !== 10 || loading}

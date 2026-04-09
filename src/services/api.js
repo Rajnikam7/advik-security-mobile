@@ -1,10 +1,8 @@
 import axios from 'axios';
-import Config from 'react-native-config';
+import { API_URL } from '@env';
 import secureStorage from '../utils/secureStorage';
 
-const API_BASE_URL = Config.API_BASE_URL || 'http://10.0.2.2:5001/api/security';
-
-console.log('API Base URL:', API_BASE_URL);
+const API_BASE_URL = API_URL;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -25,7 +23,7 @@ const processQueue = (error, token = null) => {
       prom.resolve(token);
     }
   });
-  
+
   failedQueue = [];
 };
 
@@ -38,7 +36,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  error => Promise.reject(error)
+  error => Promise.reject(error),
 );
 
 // Response interceptor for error handling and token refresh
@@ -66,7 +64,7 @@ api.interceptors.response.use(
 
       try {
         const tokens = await secureStorage.getTokens();
-        
+
         if (!tokens || !tokens.refreshToken) {
           throw new Error('No refresh token');
         }
@@ -74,27 +72,27 @@ api.interceptors.response.use(
         // Try to refresh the token
         const response = await axios.post(
           `${API_BASE_URL}/auth/refresh-token`,
-          { refreshToken: tokens.refreshToken }
+          { refreshToken: tokens.refreshToken },
         );
 
         const newAccessToken = response.data.token;
-        
+
         // Store new token
         await secureStorage.setTokens(newAccessToken, tokens.refreshToken);
-        
+
         // Update authorization header
         api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        
+
         processQueue(null, newAccessToken);
-        
+
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        
+
         // Clear tokens and redirect to login
         await secureStorage.clearAll();
-        
+
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -102,7 +100,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;
